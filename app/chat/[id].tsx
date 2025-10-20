@@ -1,5 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { MessagingService } from '@/services/messagingService'
+import { NetworkService, NetworkState } from '@/services/networkService'
+import { OfflineQueueService } from '@/services/offlineQueueService'
 import { Conversation, Message } from '@/types/messaging'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
@@ -8,6 +10,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,15 +27,27 @@ export default function ChatScreen() {
   const [messageText, setMessageText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [networkState, setNetworkState] = useState<NetworkState>(
+    NetworkService.getCurrentState()
+  )
+  const [queuedMessages, setQueuedMessages] = useState<any[]>([])
   const flatListRef = useRef<FlatList>(null)
 
   useEffect(() => {
     if (!user || !id) return
 
+    // Initialize network service
+    NetworkService.initialize()
+
+    // Set up network state listener
+    const unsubscribeNetwork = NetworkService.subscribe((state) => {
+      setNetworkState(state)
+    })
+
     // Set up real-time listener for messages
     const unsubscribe = MessagingService.listenToConversationMessages(
       id,
-      (updatedMessages) => {
+      async (updatedMessages) => {
         // Deduplicate messages by ID to prevent duplicates
         const uniqueMessages = updatedMessages.reduce((acc, message) => {
           if (!acc.find((m) => m.id === message.id)) {
@@ -41,13 +56,41 @@ export default function ChatScreen() {
           return acc
         }, [] as Message[])
 
+        // Mark new messages as delivered (if not sent by current user)
+        const newMessages = uniqueMessages.filter(
+          (msg) => msg.senderId !== user.uid && msg.status === 'sent'
+        )
+
+        for (const message of newMessages) {
+          await MessagingService.markMessageAsDelivered(message.id)
+        }
+
         setMessages(uniqueMessages.reverse()) // Reverse to show oldest first
         setLoading(false)
       }
     )
 
-    return () => unsubscribe()
+    // Load queued messages for this conversation
+    const loadQueuedMessages = async () => {
+      const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
+      setQueuedMessages(queued)
+    }
+    loadQueuedMessages()
+
+    return () => {
+      unsubscribe()
+      unsubscribeNetwork()
+    }
   }, [user, id])
+
+  // Refresh queued messages when network state changes
+  useEffect(() => {
+    const refreshQueuedMessages = () => {
+      const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
+      setQueuedMessages(queued)
+    }
+    refreshQueuedMessages()
+  }, [networkState.isOnline, id])
 
   // Mark messages as read when conversation is opened
   useEffect(() => {
@@ -128,19 +171,48 @@ export default function ChatScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
+    const isQueued = queuedMessages.some((q) => q.id === item.id)
 
-    const getStatusIcon = (status: string) => {
+    // Only show status on the most recent message sent by current user
+    const allMessages = getAllMessages()
+    const userMessages = allMessages.filter((msg) => msg.senderId === user?.uid)
+    const isMostRecentUserMessage =
+      userMessages.length > 0 &&
+      userMessages[userMessages.length - 1].id === item.id
+
+    const getStatusIcon = (status: string, isQueued: boolean = false) => {
+      if (isQueued) {
+        return '⏳' // Spinner for queued messages
+      }
+
       switch (status) {
         case 'sending':
-          return '⏳'
+          return '⏳' // Spinner
         case 'sent':
-          return '✓'
         case 'delivered':
-          return '✓✓'
+          return '✓' // Gray checkmark
         case 'read':
-          return '✓✓'
+          return '✓' // Blue checkmark (stays blue forever)
         default:
           return ''
+      }
+    }
+
+    const getStatusColor = (status: string, isQueued: boolean = false) => {
+      if (isQueued) {
+        return '#FF9500' // Orange for queued messages
+      }
+
+      switch (status) {
+        case 'sending':
+          return '#FF9500' // Orange
+        case 'sent':
+        case 'delivered':
+          return '#8E8E93' // Gray
+        case 'read':
+          return '#34C759' // Green (stays green forever)
+        default:
+          return '#8E8E93'
       }
     }
 
@@ -174,9 +246,14 @@ export default function ChatScreen() {
             >
               {messageTime}
             </Text>
-            {isOwnMessage && (
-              <Text style={styles.statusIcon}>
-                {getStatusIcon(item.status)}
+            {isOwnMessage && isMostRecentUserMessage && (
+              <Text
+                style={[
+                  styles.statusIcon,
+                  { color: getStatusColor(item.status, isQueued) }
+                ]}
+              >
+                {getStatusIcon(item.status, isQueued)}
               </Text>
             )}
           </View>
@@ -202,6 +279,29 @@ export default function ChatScreen() {
     return 'Group Chat'
   }
 
+  // Merge Firestore messages with queued messages
+  const getAllMessages = (): Message[] => {
+    // Convert queued messages to Message format
+    const queuedAsMessages: Message[] = queuedMessages.map((queued) => ({
+      id: queued.id,
+      conversationId: queued.conversationId,
+      senderId: queued.senderId,
+      senderName: queued.senderName,
+      text: queued.text,
+      timestamp: new Date(queued.timestamp),
+      type: queued.type,
+      status: 'sending' as const, // Queued messages are always in sending state
+      imageURL: queued.imageURL,
+      replyTo: queued.replyTo
+    }))
+
+    // Combine and sort by timestamp
+    const allMessages = [...messages, ...queuedAsMessages]
+    return allMessages.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+    )
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -212,62 +312,83 @@ export default function ChatScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{getConversationTitle()}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{getConversationTitle()}</Text>
+            {!networkState.isOnline && (
+              <Text
+                style={[
+                  styles.networkStatus,
+                  { color: NetworkService.getStatusColor() }
+                ]}
+              >
+                {NetworkService.getStatusText()}
+              </Text>
+            )}
+          </View>
+          <View style={styles.headerSpacer} />
+        </View>
 
-      {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        style={styles.messagesList}
-        contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
-
-      {/* Message Input */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textInput}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder='Type a message...'
-          multiline
-          maxLength={1000}
+        {/* Messages */}
+        <FlatList
+          ref={flatListRef}
+          data={getAllMessages()}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContent}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!messageText.trim() || sending) && styles.sendButtonDisabled
-          ]}
-          onPress={handleSendMessage}
-          disabled={!messageText.trim() || sending}
-        >
-          <Text style={styles.sendButtonText}>{sending ? '...' : 'Send'}</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+        {/* Message Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textInput}
+            value={messageText}
+            onChangeText={setMessageText}
+            placeholder='Type a message...'
+            multiline
+            maxLength={1000}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!messageText.trim() || sending) && styles.sendButtonDisabled
+            ]}
+            onPress={handleSendMessage}
+            disabled={!messageText.trim() || sending}
+          >
+            <Text style={styles.sendButtonText}>
+              {sending ? '...' : 'Send'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF'
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF'
@@ -298,12 +419,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#007AFF'
   },
-  headerTitle: {
+  headerCenter: {
     flex: 1,
+    alignItems: 'center'
+  },
+  headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
     textAlign: 'center'
+  },
+  networkStatus: {
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500'
   },
   headerSpacer: {
     width: 36
@@ -381,7 +510,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E7'
+    borderTopColor: '#E5E5E7',
+    minHeight: 60
   },
   textInput: {
     flex: 1,
@@ -392,7 +522,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 12,
     maxHeight: 100,
-    fontSize: 16
+    minHeight: 40,
+    fontSize: 16,
+    textAlignVertical: 'top'
   },
   sendButton: {
     backgroundColor: '#007AFF',

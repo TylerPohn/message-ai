@@ -1,5 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { MessagingService } from '@/services/messagingService'
+import { NetworkService, NetworkState } from '@/services/networkService'
+import { OfflineQueueService } from '@/services/offlineQueueService'
 import { UserCacheService } from '@/services/userCacheService'
 import { Conversation, UserProfile } from '@/types/messaging'
 import { TestDataUtils } from '@/utils/testData'
@@ -26,9 +28,32 @@ export default function ChatListScreen() {
   const [userMemberships, setUserMemberships] = useState<Map<string, any>>(
     new Map()
   )
+  const [networkState, setNetworkState] = useState<NetworkState>(
+    NetworkService.getCurrentState()
+  )
+  const [queueStats, setQueueStats] = useState({ totalMessages: 0, pending: 0 })
 
   useEffect(() => {
     if (!user) return
+
+    // Initialize services
+    NetworkService.initialize()
+    OfflineQueueService.initialize()
+
+    // Set up network state listener
+    const unsubscribeNetwork = NetworkService.subscribe((state) => {
+      setNetworkState(state)
+    })
+
+    // Set up queue stats listener
+    const updateQueueStats = () => {
+      const stats = OfflineQueueService.getQueueStats()
+      setQueueStats({
+        totalMessages: stats.totalMessages,
+        pending: stats.retryStats.pending
+      })
+    }
+    updateQueueStats()
 
     // Set up real-time listener for conversations
     const unsubscribe = MessagingService.listenToUserConversations(
@@ -73,7 +98,10 @@ export default function ChatListScreen() {
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+      unsubscribeNetwork()
+    }
   }, [user])
 
   const formatTimestamp = (timestamp: Date) => {
@@ -226,7 +254,25 @@ export default function ChatListScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Messages</Text>
+          {!networkState.isOnline && (
+            <Text
+              style={[
+                styles.networkStatus,
+                { color: NetworkService.getStatusColor() }
+              ]}
+            >
+              {NetworkService.getStatusText()}
+            </Text>
+          )}
+          {queueStats.pending > 0 && (
+            <Text style={styles.queueStatus}>
+              {queueStats.pending} message{queueStats.pending !== 1 ? 's' : ''}{' '}
+              queued
+            </Text>
+          )}
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.testDataButton}
@@ -277,6 +323,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E7'
   },
+  headerLeft: {
+    flex: 1
+  },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -297,6 +346,17 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: 'bold',
     color: '#000000'
+  },
+  networkStatus: {
+    fontSize: 14,
+    marginTop: 2,
+    fontWeight: '500'
+  },
+  queueStatus: {
+    fontSize: 12,
+    marginTop: 2,
+    color: '#FF9500',
+    fontWeight: '500'
   },
   newChatButton: {
     width: 32,

@@ -77,9 +77,14 @@ Firestore ← Real-time Listeners ← UI Updates
 - **Firestore Collections**: conversations, messages, memberships
 - **Realtime Database**: presence, typing indicators
 - **Optimistic Updates**: Immediate UI feedback with server sync
-- **Offline Support**: Local queue with retry logic
+- **Offline Support**: Local queue with retry logic and AsyncStorage persistence
 - **Message IDs**: Firestore document IDs used throughout for consistency
 - **Read Status**: Automatic read receipt updates when messages are viewed
+- **Network Monitoring**: Real-time connectivity detection with NetInfo
+- **Offline Queue**: Failed messages stored locally with exponential backoff retry
+- **Message Status Flow**: sending → sent → delivered → read
+- **Status Indicators**: Spinner (⏳) → Gray checkmark (✓) → Green checkmark (✓)
+- **UI Integration**: Queued messages display in chat with queue indicators
 
 ### AI Features
 

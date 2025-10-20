@@ -20,6 +20,8 @@ import {
   updateDoc,
   where
 } from 'firebase/firestore'
+import { NetworkService } from './networkService'
+import { OfflineQueueService } from './offlineQueueService'
 // Removed ulid import - using custom ID generation
 
 export class MessagingService {
@@ -74,7 +76,7 @@ export class MessagingService {
     return conversationRef.id
   }
 
-  // Send a message
+  // Send a message with offline support and retry logic
   static async sendMessage(
     conversationId: string,
     senderId: string,
@@ -84,6 +86,21 @@ export class MessagingService {
     imageURL?: string,
     replyTo?: string
   ): Promise<string> {
+    // Check if we're online
+    if (!NetworkService.isOnline()) {
+      console.log('Offline - adding message to queue')
+      const queuedId = await OfflineQueueService.addToQueue(
+        conversationId,
+        senderId,
+        senderName,
+        text,
+        type,
+        imageURL,
+        replyTo
+      )
+      return queuedId
+    }
+
     try {
       // Prepare message data for Firestore (remove undefined values)
       const messageData: any = {
@@ -129,8 +146,42 @@ export class MessagingService {
       return messageRef.id
     } catch (error) {
       console.error('Error sending message:', error)
+
+      // Check if it's a network error
+      if (this.isNetworkError(error)) {
+        console.log('Network error - adding message to queue')
+        const queuedId = await OfflineQueueService.addToQueue(
+          conversationId,
+          senderId,
+          senderName,
+          text,
+          type,
+          imageURL,
+          replyTo
+        )
+        return queuedId
+      }
+
       throw error
     }
+  }
+
+  // Check if error is network-related
+  private static isNetworkError(error: any): boolean {
+    if (!error) return false
+
+    const errorMessage = error.message?.toLowerCase() || ''
+    const errorCode = error.code?.toLowerCase() || ''
+
+    return (
+      errorMessage.includes('network') ||
+      errorMessage.includes('offline') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('connection') ||
+      errorCode.includes('unavailable') ||
+      errorCode.includes('timeout') ||
+      errorCode.includes('network')
+    )
   }
 
   // Get conversations for a user
@@ -271,15 +322,45 @@ export class MessagingService {
       limit(limitCount)
     )
 
-    return onSnapshot(messagesQuery, (messagesSnapshot) => {
+    return onSnapshot(messagesQuery, async (messagesSnapshot) => {
       const messages = messagesSnapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id, // Use Firestore document ID as authoritative ID
         timestamp: doc.data().timestamp?.toDate() || new Date()
       })) as Message[]
 
+      // Mark new messages as delivered (if not sent by current user)
+      await this.markNewMessagesAsDelivered(messages, conversationId)
+
       callback(messages)
     })
+  }
+
+  // Mark new messages as delivered when they reach the recipient's device
+  private static async markNewMessagesAsDelivered(
+    messages: Message[],
+    conversationId: string
+  ): Promise<void> {
+    try {
+      // Get current user ID from auth context (we'll need to pass this in)
+      // For now, we'll implement this in the UI components where we have access to user context
+      console.log(
+        'New messages received - delivered status will be handled in UI components'
+      )
+    } catch (error) {
+      console.error('Error marking messages as delivered:', error)
+    }
+  }
+
+  // Mark a specific message as delivered
+  static async markMessageAsDelivered(messageId: string): Promise<void> {
+    try {
+      const messageRef = doc(db, COLLECTIONS.MESSAGES, messageId)
+      await updateDoc(messageRef, { status: 'delivered' })
+      console.log(`Marked message ${messageId} as delivered`)
+    } catch (error) {
+      console.error('Error marking message as delivered:', error)
+    }
   }
 
   // Update message status

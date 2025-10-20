@@ -36,17 +36,15 @@
 
 ### 4. Real-Time Delivery
 
-- [ ] Firestore listeners for new messages
-- [ ] Handle offline queue/retry
-- [ ] Test airplane mode sync
-- [ ] Add delivery states (sending/sent/delivered)
-
-### 4. Real-Time Delivery
-
-- [ ] Firestore listeners for new messages
-- [ ] Handle offline queue/retry
-- [ ] Test airplane mode sync
-- [ ] Add delivery states (sending/sent/delivered)
+- [x] Firestore listeners for new messages
+- [x] Handle offline queue/retry
+- [x] Test airplane mode sync
+- [x] Add delivery states (sending/sent/delivered/read)
+- [x] Display queued messages in UI while offline
+- [x] Merge offline queue with Firestore messages
+- [x] Show queue status indicators for offline messages
+- [x] Simplified status indicators (spinner → gray ✓ → green ✓)
+- [x] Status only on most recent message
 
 ### 5. Presence & Read Receipts
 
