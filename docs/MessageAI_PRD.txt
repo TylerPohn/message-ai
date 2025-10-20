@@ -1,0 +1,113 @@
+PRD — MessageAI (React Native + Firebase)
+
+1) Goal & Non-Goals
+Goal: Ship a production-quality, cross-platform messaging app (WhatsApp-style) with reliable real-time chat and offline support, then layer in AI features (summaries, translation, smart replies, action items) using LLMs + lightweight RAG—within a one-week sprint.
+
+Non-Goals (v1):
+- End-to-end encryption (E2EE) protocol design (we’ll use transport encryption + scoped security rules first).
+- Voice/video calls.
+- Message reactions/threads/quoted replies beyond plain quoting.
+- Desktop/web clients.
+
+2) Timeline & Deliverables
+Sprint dates: 7 days
+- MVP (Tue, 24h): 1:1 chats, basic groups (3+), real-time delivery, persistence across restarts. Optimistic send, timestamps, read receipts, online/offline presence, push (foreground OK). Auth + minimal profiles. Runs on Expo Go with deployed Firebase backend.
+- Early Submission (Fri, Day 4): Typing indicators, image send/receive, profile photos. Background pushes, message delivery states (sending/sent/delivered/read). Basic AI chat (assistant thread) + “Summarize this chat”.
+- Final (Sun, Day 7): Translate on tap, smart reply suggestions, action-item extraction. Summarization snapshots to bound context, RAG over recent history. Stability, analytics, costs guardrails, security rules hardened.
+
+3) Target Users & Persona
+Primary persona: Busy professional coordinating across multiple group chats who needs reliability + assistive AI (summaries, follow-ups).
+Secondary: Friends/family groups sharing photos, needing seamless offline/poor-network performance.
+
+4) Platforms & Tech Choices
+Client: React Native (Expo), TypeScript.
+Backend: Firebase (Auth, Firestore, Realtime Database, Cloud Functions, Cloud Storage, FCM).
+AI Server: Cloud Functions (Node) calling LLM APIs (e.g., OpenAI) via an agent SDK (Vercel AI SDK or LangChain).
+Why Firebase: Best-in-class real-time sync, built-in offline persistence, push, serverless scale with minimal DevOps.
+
+5) Functional Requirements
+Authentication & Profiles
+- Sign-in: Email + password or magic-link.
+- User profile: displayName, photoURL, status, lastSeen.
+- Device registration for push.
+
+Conversations
+- 1:1 chat (deterministic pairing key).
+- Groups (3+): title, photo, admins.
+- Message types: text, image (min), system events.
+- Delivery states: sending → sent → delivered → read.
+- Read receipts: per-user lastReadMessageId.
+- Presence and typing indicators.
+
+Real-Time & Offline Behavior
+- Optimistic UI, queue & retry offline, reconcile on reconnect.
+
+Media
+- Image upload with resumable storage, thumbnails.
+
+Notifications
+- FCM (Android/iOS via Expo). Foreground guaranteed MVP; background for Early/Final.
+
+AI Features
+- AI Assistant Chat: Summarize thread, translate, smart replies, extract action items.
+- In-line AI: “Summarize last 50 messages”, “Translate to X”.
+- Memory: user preferences.
+- RAG: rolling summaries, bounded context window.
+
+6) Non-Functional Requirements
+Performance: <100ms optimistic send; <1s server ack.
+Reliability: no message loss; idempotent sends.
+Security: Firebase Rules, PII-scope, opt-in AI.
+Cost: capped LLM tokens, optimized Firestore.
+
+7) Data Model
+Firestore: users, conversations, memberships, messages, devices, ai_requests.
+Realtime DB: presence, typing.
+
+8) Key Flows
+Send Message, Read Receipts, Typing, Presence, Image Upload, Notifications.
+
+9) AI Architecture
+Cloud Functions endpoints with tools: getConversationWindow, summarize, translate, postAIMessage, extractActionItems.
+Framework: Vercel AI SDK / LangChain.
+RAG: rolling summaries, caching, token limits.
+
+10) Client Architecture
+State: React Query/Zustand.
+Lists: FlashList.
+Offline: Firestore persistence.
+IDs: ULIDs.
+Theming: minimal WhatsApp-style.
+
+11) Security Rules
+Scoped read/write to participants. Storage restricted by conversationId. Rate-limited Cloud Functions.
+
+12) Analytics & Observability
+DAU/MAU, messages/day, errors, AI call counts, performance metrics.
+
+13) Testing & Acceptance
+Real-time chat, offline recovery, notifications, group sync, AI summaries and translations.
+
+14) Rollout
+Dev + prod envs, feature flags, kill switches.
+
+15) Open Questions
+Auth method, read receipts UI, translation languages, group admin controls.
+
+16) Risks & Pitfalls
+Firestore cost explosion, ordering jitter, duplicates, stale presence, iOS push quirks, large group scaling, storage abuse, AI cost overruns, privacy concerns, stale tokens, rule permissiveness.
+
+17) Implementation Plan
+Day 1: MVP core
+Day 2: Groups + media
+Day 3: Notifications + typing
+Day 4: AI base
+Day 5: Translation + replies
+Day 6: Action items + analytics
+Day 7: QA + final polish
+
+18) Definition of Done
+MVP: all core chat functions across devices, no message loss.
+Final: AI functional, stable, cost-safe.
+
+End of PRD
