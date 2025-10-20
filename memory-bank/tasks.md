@@ -9,6 +9,7 @@
 - [x] Install dependencies: `npm i firebase react-native-gifted-chat @tanstack/react-query @tanstack/react-query-devtools ulid`
 - [x] Initialize Firebase project (Auth, Firestore, Functions, Storage)
 - [x] Add `.env` and `firebaseConfig.ts`
+- [x] **RESET**: Ran `npm run reset-project` - Project reset to clean state (auth files deleted)
 - [ ] Enable Firestore offline persistence
 
 ### 2. Authentication
@@ -17,6 +18,7 @@
 - [x] Build AuthContext (`useAuth()` hook)
 - [x] Create Login/Signup screens
 - [x] Store user profiles in `/users/{userId}`
+- [x] **REBUILT**: Authentication system recreated after reset - all auth components restored
 
 ### 3. Basic Chat Structure
 

@@ -1,0 +1,101 @@
+# System Patterns - MessageAI
+
+## Architecture Overview
+
+MessageAI follows a React Native + Firebase architecture with AI integration, designed for real-time messaging with offline support and intelligent features.
+
+## Key Technical Decisions
+
+### Frontend Architecture
+
+- **Framework**: React Native with Expo
+- **Navigation**: Expo Router (file-based routing)
+- **State Management**: React Query for server state, Zustand for client state
+- **UI Components**: Custom components with WhatsApp-style theming
+- **Performance**: FlashList for smooth scrolling, optimistic UI patterns
+
+### Backend Architecture
+
+- **Primary**: Firebase (Auth, Firestore, Realtime Database, Cloud Functions, Storage, FCM)
+- **AI Server**: Cloud Functions (Node) calling LLM APIs via Vercel AI SDK or LangChain
+- **Real-time**: Firestore for messages, Realtime Database for presence/typing
+- **Storage**: Firebase Storage for media with resumable uploads
+
+### Data Flow Patterns
+
+```
+User Action → Optimistic UI → Firestore → Real-time Sync → UI Update
+     ↓
+Offline Queue → Retry Logic → Reconnection → Sync Resolution
+```
+
+## Design Patterns in Use
+
+### Authentication Pattern
+
+- **Context Provider**: AuthContext with useAuth hook
+- **Route Protection**: AuthGuard component for protected routes
+- **User Profiles**: Stored in `/users/{userId}` collection
+
+### Messaging Patterns
+
+- **Optimistic UI**: Immediate local updates with server reconciliation
+- **Offline Queue**: Local storage with retry mechanisms
+- **Real-time Sync**: Firestore listeners with presence indicators
+- **Message Ordering**: Server timestamps for consistent ordering
+
+### AI Integration Patterns
+
+- **Tool-based Architecture**: Modular AI functions (summarize, translate, extract)
+- **RAG Implementation**: Rolling summaries with bounded context
+- **Cost Management**: Token limits and caching strategies
+
+## Component Relationships
+
+### Core Components
+
+- **AuthContext**: Central authentication state management
+- **AuthGuard**: Route protection wrapper
+- **ChatListScreen**: Conversation list with real-time updates
+- **ChatScreen**: Individual chat with message handling
+- **MessageAI**: AI assistant integration
+
+### Data Flow
+
+```
+AuthContext → AuthGuard → Protected Routes
+     ↓
+ChatListScreen → ChatScreen → Message Components
+     ↓
+Firestore ← Real-time Listeners ← UI Updates
+```
+
+## Key Implementation Patterns
+
+### Real-time Messaging
+
+- **Firestore Collections**: conversations, messages, memberships
+- **Realtime Database**: presence, typing indicators
+- **Optimistic Updates**: Immediate UI feedback with server sync
+- **Offline Support**: Local queue with retry logic
+
+### AI Features
+
+- **Cloud Functions**: `/ai/invoke` endpoint with tool routing
+- **RAG Pipeline**: Rolling summaries every 100 messages
+- **Context Management**: 4k token limits with caching
+- **User Preferences**: Stored in user profiles
+
+### Performance Optimizations
+
+- **Pagination**: 50 messages per load with FlashList
+- **Image Handling**: Thumbnails via Cloud Functions
+- **State Management**: React Query for server state caching
+- **Offline Persistence**: Firestore offline support
+
+## Security Patterns
+
+- **Firebase Rules**: Scoped read/write to participants
+- **Storage Rules**: Size/type restrictions
+- **Rate Limiting**: Cloud Function rate limits
+- **PII Scope**: Opt-in AI features with privacy controls

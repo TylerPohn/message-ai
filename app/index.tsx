@@ -19,6 +19,7 @@ export default function HomeScreen() {
       console.error('Error logging out:', error)
     }
   }
+
   return (
     <AuthGuard>
       <ParallaxScrollView
