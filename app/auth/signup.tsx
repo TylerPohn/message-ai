@@ -42,7 +42,7 @@ export default function SignupScreen() {
     setLoading(true)
     try {
       await signUp(email, password, displayName)
-      router.replace('/(tabs)')
+      router.replace('/chat/')
     } catch (error: any) {
       Alert.alert(
         'Signup Failed',

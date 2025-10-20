@@ -37,6 +37,20 @@ MessageAI addresses the growing need for intelligent messaging solutions that co
 4. **AI Assistance**: Access AI features through natural interactions
 5. **Media Sharing**: Upload and share images with thumbnails
 
+### Message List User Experience
+
+**Conversation List Display:**
+
+- **Title**: Shows the other user's display name in bold
+- **Recent Message**: Displays the most recent message below the title
+- **Message Sender Logic**:
+  - If you sent the most recent message: Shows your message text (not bold)
+  - If they sent the most recent message: Shows their message text (bold if unread, not bold if read)
+- **Read Status Visual Cues**:
+  - Your own messages are never bold (always "read" by you)
+  - Their messages are bold only when unread
+  - Their messages are not bold when you've read them
+
 ## Value Proposition
 
 - **For Professionals**: Reliable team communication with AI-powered insights

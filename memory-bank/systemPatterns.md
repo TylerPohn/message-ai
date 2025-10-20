@@ -78,6 +78,8 @@ Firestore ← Real-time Listeners ← UI Updates
 - **Realtime Database**: presence, typing indicators
 - **Optimistic Updates**: Immediate UI feedback with server sync
 - **Offline Support**: Local queue with retry logic
+- **Message IDs**: Firestore document IDs used throughout for consistency
+- **Read Status**: Automatic read receipt updates when messages are viewed
 
 ### AI Features
 

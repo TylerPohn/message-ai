@@ -1,5 +1,7 @@
 import { Image } from 'expo-image'
-import { StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { useEffect } from 'react'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import AuthGuard from '@/components/AuthGuard'
 import { HelloWave } from '@/components/hello-wave'
@@ -7,16 +9,48 @@ import ParallaxScrollView from '@/components/parallax-scroll-view'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/contexts/AuthContext'
+import { TestDataUtils } from '@/utils/testData'
 import { Link } from 'expo-router'
 
 export default function HomeScreen() {
   const { user, userProfile, logout } = useAuth()
+  const router = useRouter()
+
+  // Redirect authenticated users to chat list
+  useEffect(() => {
+    if (user && userProfile) {
+      router.replace('/chat/')
+    }
+  }, [user, userProfile, router])
 
   const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
       console.error('Error logging out:', error)
+    }
+  }
+
+  const handleCreateTestConversation = async () => {
+    if (!user || !userProfile) return
+
+    try {
+      // Create a test conversation with a dummy user
+      const testUserId = 'test-user-123'
+      const testUserName = 'Test User'
+
+      const conversationId = await TestDataUtils.createTestConversation(
+        user.uid,
+        testUserId,
+        userProfile.displayName,
+        testUserName
+      )
+
+      console.log('Test conversation created:', conversationId)
+      alert('Test conversation created! Check the chat list.')
+    } catch (error) {
+      console.error('Error creating test conversation:', error)
+      alert('Error creating test conversation')
     }
   }
 
@@ -54,16 +88,31 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedView style={styles.stepContainer}>
-          <Link href='/modal'>
+          <ThemedText type='subtitle'>Test Data</ThemedText>
+          <ThemedText>
+            Create a test conversation to verify messaging functionality.
+          </ThemedText>
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={handleCreateTestConversation}
+          >
+            <ThemedText style={styles.testButtonText}>
+              Create Test Conversation
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
+        <ThemedView style={styles.stepContainer}>
+          <Link href='/chat/'>
             <Link.Trigger>
-              <ThemedText type='subtitle'>Step 2: Explore</ThemedText>
+              <ThemedText type='subtitle'>Step 2: Start Messaging</ThemedText>
             </Link.Trigger>
             <Link.Preview />
             <Link.Menu>
               <Link.MenuAction
-                title='Action'
-                icon='cube'
-                onPress={() => alert('Action pressed')}
+                title='New Chat'
+                icon='plus.message'
+                onPress={() => alert('New chat pressed')}
               />
               <Link.MenuAction
                 title='Share'
@@ -82,7 +131,7 @@ export default function HomeScreen() {
           </Link>
 
           <ThemedText>
-            {`Tap the Explore tab to learn more about what's included in this starter app.`}
+            {`Tap to start messaging and explore your conversations.`}
           </ThemedText>
         </ThemedView>
       </ParallaxScrollView>
@@ -106,5 +155,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute'
+  },
+  testButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    alignSelf: 'flex-start'
+  },
+  testButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600'
   }
 })

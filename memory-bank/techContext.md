@@ -112,6 +112,26 @@ firebase init
 - **Cloud Storage**: Media files
 - **FCM**: Push notifications
 
+### Message ID System
+
+**Firestore Document IDs**: All messages use Firestore's auto-generated document IDs as the authoritative identifier.
+
+- **Creation**: Messages are created without custom IDs, letting Firestore generate document IDs
+- **Retrieval**: Message listeners map `doc.id` as the authoritative ID, overriding any stored id fields
+- **Updates**: `updateMessageStatus()` uses Firestore document references for status updates
+- **Read Status**: Messages are marked as "read" using their Firestore document ID
+
+### Message Status Flow
+
+```
+sending → sent → delivered → read
+```
+
+- **sending**: Message is being sent (optimistic UI)
+- **sent**: Message successfully sent to server
+- **delivered**: Message delivered to recipient's device
+- **read**: Message has been read by recipient
+
 ## Development Workflow
 
 ### Local Development

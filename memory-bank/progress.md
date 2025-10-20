@@ -28,15 +28,21 @@
 
 ## What's Left to Build
 
-### 🔄 Core Messaging Infrastructure (MVP Priority)
+### ✅ Core Messaging Infrastructure (MVP Priority) - COMPLETED
 
-- [ ] **ChatListScreen**: List all conversations with real-time updates
-- [ ] **ChatScreen**: Individual chat interface with message handling
-- [ ] **Firestore Collections**: Set up conversations, messages, memberships
-- [ ] **Real-time Listeners**: Firestore listeners for new messages
-- [ ] **Optimistic UI**: Immediate local updates with server sync
-- [ ] **Message Persistence**: Verify messages persist after app restart
-- [ ] **Firestore Offline Persistence**: Enable offline support
+- [x] **ChatListScreen**: List all conversations with real-time updates
+- [x] **ChatScreen**: Individual chat interface with message handling
+- [x] **Firestore Collections**: Set up conversations, messages, memberships
+- [x] **Real-time Listeners**: Firestore listeners for new messages
+- [x] **Optimistic UI**: Immediate local updates with server sync
+- [x] **Message Persistence**: Verify messages persist after app restart
+- [x] **Firestore Offline Persistence**: Enable offline support
+- [x] **Test Data Creation**: Added utility to create test conversations
+- [x] **Message List Display**: Fixed real-time updates for user-sent messages
+- [x] **Read Status Tracking**: Bold formatting for unread messages
+- [x] **User Profile Caching**: Efficient display name resolution
+- [x] **Message ID System**: Standardized on Firestore document IDs for all message operations
+- [x] **Read Status Updates**: Messages properly marked as "read" when viewed by recipients
 
 ### 🔄 Real-Time Delivery System
 
@@ -67,19 +73,19 @@
 
 ## Current Status
 
-### Phase: Core Messaging Infrastructure
+### Phase: Core Messaging Infrastructure - COMPLETED
 
 **Priority**: High
 **Timeline**: Days 1-2
 **Dependencies**: Authentication system (completed)
+**Status**: ✅ All basic chat functionality implemented and working
 
 ### Next Immediate Tasks
 
-1. **Enable Firestore Offline Persistence**
-2. **Build ChatListScreen** - List all conversations
-3. **Build ChatScreen** - Individual chat interface
-4. **Set up Firestore Collections** - conversations, messages, memberships
-5. **Implement Real-time Listeners** - Live message updates
+1. **PR1 Item 4: Real-Time Delivery** - Delivery states and offline queue
+2. **PR1 Item 5: Presence & Read Receipts** - RTDB presence and read tracking
+3. **PR1 Item 6: Group Chats** - Group creation and metadata
+4. **PR1 Item 7: Notifications** - Expo push notifications
 
 ### Blocked Items
 

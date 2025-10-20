@@ -22,12 +22,24 @@
 
 ### 3. Basic Chat Structure
 
-- [ ] Build `ChatListScreen` (list all conversations)
-- [ ] Build `ChatScreen` (1:1 chat)
-- [ ] Create Firestore collections for conversations/messages
-- [ ] Add real-time listeners
-- [ ] Implement optimistic UI + timestamps
-- [ ] Verify message persistence after restart
+- [x] Build `ChatListScreen` (list all conversations)
+- [x] Build `ChatScreen` (1:1 chat)
+- [x] Create Firestore collections for conversations/messages
+- [x] Add real-time listeners
+- [x] Implement optimistic UI + timestamps
+- [x] Verify message persistence after restart
+- [x] Enable Firestore offline persistence
+- [x] Add test data creation utility
+- [x] Enable new conversation button
+- [x] Fix message list display for user-sent messages
+- [x] Fix message read status updates with Firestore document IDs
+
+### 4. Real-Time Delivery
+
+- [ ] Firestore listeners for new messages
+- [ ] Handle offline queue/retry
+- [ ] Test airplane mode sync
+- [ ] Add delivery states (sending/sent/delivered)
 
 ### 4. Real-Time Delivery
 

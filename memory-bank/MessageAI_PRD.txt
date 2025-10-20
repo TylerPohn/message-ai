@@ -39,6 +39,17 @@ Conversations
 - Read receipts: per-user lastReadMessageId.
 - Presence and typing indicators.
 
+Message List Display Behavior
+- Conversation title: Display name of the other user in bold
+- Recent message display: Show the most recent message below the title
+- Message sender logic:
+  - If current user sent the most recent message: Show the message text (not bold)
+  - If other user sent the most recent message: Show the message text (bold if unread, not bold if read)
+- Read status logic:
+  - Messages sent by current user are never bold (since they're always "read" by the sender)
+  - Messages sent by others are bold only if unread
+  - Messages sent by others are not bold if they have been read
+
 Real-Time & Offline Behavior
 - Optimistic UI, queue & retry offline, reconcile on reconnect.
 

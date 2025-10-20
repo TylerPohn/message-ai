@@ -30,7 +30,7 @@ export default function LoginScreen() {
     setLoading(true)
     try {
       await signIn(email, password)
-      router.replace('/(tabs)')
+      router.replace('/chat/')
     } catch (error: any) {
       Alert.alert(
         'Login Failed',
