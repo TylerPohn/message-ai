@@ -1,4 +1,5 @@
 import { auth, db } from '@/firebaseConfig'
+import { PresenceService } from '@/services/presenceService'
 import {
   User,
   createUserWithEmailAndPassword,
@@ -139,6 +140,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Set user offline before signing out
+      if (user) {
+        await PresenceService.setUserOffline(user.uid)
+        PresenceService.stopHeartbeat()
+        PresenceService.cleanup()
+      }
       await signOut(auth)
       setUserProfile(null)
     } catch (error) {
@@ -168,14 +175,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (user) {
         await fetchUserProfile(user)
+        // Initialize presence tracking when user logs in
+        PresenceService.initialize(user.uid)
+        // Start heartbeat to keep presence fresh
+        PresenceService.startHeartbeat(user.uid)
       } else {
         setUserProfile(null)
+        // Stop heartbeat and clean up presence tracking when user logs out
+        PresenceService.stopHeartbeat()
+        PresenceService.cleanup()
       }
 
       setLoading(false)
     })
 
-    return unsubscribe
+    return () => {
+      unsubscribe()
+      // Stop heartbeat and clean up presence tracking on unmount
+      PresenceService.stopHeartbeat()
+      PresenceService.cleanup()
+    }
   }, [])
 
   const value: AuthContextType = {

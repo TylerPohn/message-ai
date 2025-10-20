@@ -49,6 +49,10 @@ export interface UserProfile {
   status?: string
   lastSeen: Date
   createdAt: Date
+  presence?: {
+    status: 'online' | 'offline'
+    lastSeen: Date
+  }
 }
 
 // Firestore collection names

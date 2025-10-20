@@ -2,9 +2,9 @@
 
 ## Current Work Focus
 
-**Phase**: Real-Time Delivery Implementation - COMPLETED
+**Phase**: Presence & Read Receipts Implementation - COMPLETED
 **Date**: Current session
-**Status**: PR1 Item 4 - Real-Time Delivery system fully implemented with offline queue and retry logic
+**Status**: PR1 Item 5 - Presence & Read Receipts system fully implemented with RTDB presence tracking and enhanced read receipt UI
 
 ## Recent Changes
 
@@ -54,12 +54,100 @@
   - **Simplified status indicators**: Spinner (⏳) → Gray checkmark (✓) → Green checkmark (✓)
   - **Status on most recent only**: Clean UI showing status only on latest message
   - **Color coding**: Orange for sending/queued, Gray for delivered, Green for read
+  - **Optimistic UI**: Messages appear immediately when sent offline with spinner indicator
+  - **Duplicate Prevention**: Enhanced deduplication logic prevents message duplicates on reconnection
+  - **Smart Cleanup**: Optimistic messages automatically removed when Firestore messages arrive
 - **Android Keyboard Fix**: Resolved Android keyboard covering message input and send button
   - Updated app.json with proper Android keyboard configuration (softwareKeyboardLayoutMode: "pan", windowSoftInputMode: "adjustResize")
   - Modified KeyboardAvoidingView behavior from "height" to "padding" for better Android compatibility
   - Added SafeAreaView wrapper for proper spacing from system UI
   - Enhanced input container styling with minHeight and improved textInput properties
   - Added keyboardVerticalOffset for fine-tuned positioning
+- **iOS Keyboard Fix**: Resolved iOS keyboard covering message input and send button
+  - Added keyboard event listeners (keyboardWillShow/keyboardWillHide) for dynamic keyboard height tracking
+  - Improved KeyboardAvoidingView with keyboardVerticalOffset of 90px for iOS to account for navigation bar
+  - Added automatic scroll-to-bottom when keyboard appears to keep latest messages visible
+  - Enhanced input container with keyboard-specific styling (reduced padding when keyboard is active)
+  - Added proper cleanup for keyboard listeners to prevent memory leaks
+- **Presence & Read Receipts System (PR1 Item 5)**: Implemented comprehensive presence tracking and enhanced read receipt UI
+  - Created PresenceService with Firebase Realtime Database integration for real-time presence tracking
+  - Added onDisconnect handlers to automatically mark users offline when connection drops
+  - Integrated presence tracking in AuthContext with app state listeners (foreground/background)
+  - Enhanced conversation list with presence indicators (green dot for online users, last seen timestamps)
+  - Added real-time presence status display in chat screen headers
+  - Implemented "Seen" text indicator below messages when read by recipients
+  - Updated UserProfile type to include presence data structure
+  - Added getConversation method to MessagingService for presence tracking setup
+  - Secured RTDB presence data with proper security rules (users can only write their own presence)
+  - Enhanced message rendering with read status tracking and "Seen" indicators
+  - Added comprehensive presence cleanup on logout and app state changes
+- **Presence Heartbeat & Time-Based Offline Detection**: Fixed critical airplane mode issue with heartbeat system
+  - Added heartbeat system that sends presence updates every 30 seconds when online
+  - Implemented time-based offline detection (60-second threshold) for stale presence data
+  - Added network-aware heartbeat that only runs when network is available
+  - Enhanced presence listening logic to check time-based offline status in real-time
+  - Integrated heartbeat with AuthContext (start on login, stop on logout)
+  - Added comprehensive debugging logs for testing airplane mode scenarios
+  - Created testing guide for verifying airplane mode, app background, and network drop scenarios
+  - Fixed issue where users appeared online indefinitely when airplane mode was enabled
+  - Users now appear offline within 60 seconds of losing network connectivity
+- **Presence Updates on Messages Page Fix**: Resolved presence status not updating on conversation list
+  - Fixed presence listeners only being set up once when conversations were first loaded
+  - Moved presence listener setup inside conversation update handler to refresh on changes
+  - Added cleanup of existing presence listeners before setting up new ones to prevent memory leaks
+  - Implemented periodic presence data refresh (5-second interval) to update stale status
+  - Added comprehensive debugging logs to track presence listener lifecycle and updates
+  - Created testing guide for verifying presence updates work on Messages page without navigation
+  - Users now see real-time presence updates on the Messages page without needing to click into chats
+  - Fixed issue where presence status only updated when navigating to specific conversations
+- **Airplane Mode Detection Fix**: Resolved critical issue where users didn't appear offline when going into airplane mode
+  - Reduced OFFLINE_THRESHOLD from 60 seconds to 30 seconds for more responsive detection
+  - Enhanced presence listeners with immediate stale data detection when presence updates are received
+  - Added comprehensive debugging logs to track presence data age and offline detection logic
+  - Implemented immediate `isUserOffline()` checks in both Messages page and chat screen presence listeners
+  - Added detailed console logging to monitor presence update flow and detection results
+  - Created comprehensive testing guide for airplane mode detection scenarios
+  - Users now appear offline within 30 seconds of going into airplane mode on other users' devices
+  - Fixed issue where onDisconnect handlers couldn't fire when users were already offline
+- **Comprehensive Documentation**: Created detailed technical documentation for presence system
+  - **presence-system-docs.md**: Complete system documentation with code snippets and implementation details
+  - **presence-system-architecture.md**: Visual architecture diagrams and data flow documentation
+  - **presence-quick-reference.md**: Developer quick reference guide with common operations and troubleshooting
+  - **presence-heartbeat-plan.md**: Original implementation plan with task breakdown
+  - **presence-messages-page-fix.md**: Documentation for Messages page presence fix
+  - **presence-testing-guide.md**: Comprehensive testing procedures for airplane mode scenarios
+  - **airplane-mode-detection-test.md**: Detailed testing guide for airplane mode detection
+  - Documentation includes code snippets, architecture diagrams, troubleshooting guides, and performance notes
+- **Platform-Specific Keyboard Isolation**: Resolved cross-platform keyboard handling conflicts
+  - Extracted platform-specific keyboard handling into separate functions (setupIOSKeyboardHandling, setupAndroidKeyboardHandling)
+  - Implemented isolated keyboard event listeners for iOS (keyboardWillShow/Hide) vs Android (keyboardDidShow/Hide)
+  - Created platform-specific style objects (inputContainerKeyboardIOS, inputContainerAndroid)
+  - Updated KeyboardAvoidingView behavior: iOS uses 'padding' with 90px offset, Android uses 'height' with 0px offset
+  - Added proper conditional rendering for platform-specific input container styling
+  - Ensured iOS keyboard height tracking only affects iOS, Android relies on KeyboardAvoidingView automatic handling
+  - Fixed keyboard listener cleanup to prevent memory leaks on both platforms
+- **Android Keyboard Fixes**: Resolved Android-specific keyboard accumulation and padding issues
+  - Changed Android KeyboardAvoidingView from 'height' to 'padding' behavior to prevent accumulation
+  - Added Android keyboard height tracking to prevent input container moving too high above keyboard
+  - Implemented baseline padding (16px) for Android input container when keyboard is closed for easier access
+  - Added Android keyboard-active styling (8px padding) when keyboard is open
+  - Updated keyboardVerticalOffset for Android from 0px to 20px for proper positioning
+  - Fixed keyboard open/close cycle accumulation that caused input to move progressively higher
+  - Ensured consistent keyboard behavior across multiple open/close cycles
+- **Android Double Adjustment Fix**: Eliminated double keyboard adjustment causing input to move twice as high
+  - Disabled KeyboardAvoidingView for Android (enabled only for iOS) to prevent double adjustment
+  - Android now relies entirely on manual keyboard height tracking for precise control
+  - Added dynamic marginBottom styling for Android input container based on keyboard height
+  - Fixed second keyboard open issue where input would move twice as high with blank space
+  - Ensured consistent behavior across multiple keyboard open/close cycles
+  - Maintained iOS KeyboardAvoidingView behavior while giving Android full manual control
+- **Development Mode Login Buttons**: Added development convenience features for testing
+  - Added environment variable support in app.json with EXPO_DEV_MODE configuration
+  - Implemented development mode detection using expo-constants
+  - Added two development login buttons with test credentials (tylerpohn@gmail.com, moblingoblin64@gmail.com)
+  - Created visually distinct styling for development features (yellow container, colored buttons)
+  - Added proper error handling and loading states for development login attempts
+  - Development buttons only appear when EXPO_DEV_MODE=true environment variable is set
 
 ## Current State
 
@@ -86,6 +174,12 @@
   - Delivered status tracking implementation
   - Network status indicators in UI
   - Exponential backoff retry mechanism
+- **Presence & Read Receipts System (PR1 Item 5)**:
+  - PresenceService with RTDB integration and onDisconnect handlers
+  - Real-time presence tracking with app state listeners
+  - Presence indicators in conversation list and chat headers
+  - Enhanced read receipt UI with "Seen" text indicators
+  - Secure RTDB rules for presence data access
 
 ### 🔄 In Progress
 
@@ -94,7 +188,6 @@
 
 ### ⏳ Next Steps
 
-- PR1 Item 5: Presence & Read Receipts (RTDB presence, read tracking)
 - PR1 Item 6: Group Chats (group creation, metadata)
 - PR1 Item 7: Notifications (Expo push notifications)
 

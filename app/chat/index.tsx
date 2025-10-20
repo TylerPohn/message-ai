@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
+import { PresenceData, PresenceService } from '@/services/presenceService'
 import { UserCacheService } from '@/services/userCacheService'
 import { Conversation, UserProfile } from '@/types/messaging'
 import { TestDataUtils } from '@/utils/testData'
@@ -32,6 +33,9 @@ export default function ChatListScreen() {
     NetworkService.getCurrentState()
   )
   const [queueStats, setQueueStats] = useState({ totalMessages: 0, pending: 0 })
+  const [presenceData, setPresenceData] = useState<Map<string, PresenceData>>(
+    new Map()
+  )
 
   useEffect(() => {
     if (!user) return
@@ -76,6 +80,75 @@ export default function ChatListScreen() {
             Array.from(allParticipantIds)
           )
           setUserProfiles(profiles)
+
+          // Clean up existing presence listeners before setting up new ones
+          if ((window as any).presenceUnsubscribers) {
+            console.log('[ChatList] Cleaning up existing presence listeners...')
+            ;(window as any).presenceUnsubscribers.forEach(
+              (unsub: () => void) => unsub()
+            )
+            ;(window as any).presenceUnsubscribers = []
+          }
+
+          // Set up presence listeners for all participants
+          console.log(
+            `[ChatList] Setting up presence listeners for ${allParticipantIds.size} participants`
+          )
+          const presenceUnsubscribers: (() => void)[] = []
+
+          for (const participantId of allParticipantIds) {
+            const unsubscribe = PresenceService.listenToUserPresence(
+              participantId,
+              (presence) => {
+                if (presence) {
+                  console.log(
+                    `[ChatList] Received presence update for ${participantId}:`,
+                    {
+                      status: presence.status,
+                      lastSeen: new Date(presence.lastSeen).toISOString(),
+                      age: Math.round((Date.now() - presence.lastSeen) / 1000)
+                    }
+                  )
+
+                  // Check if user should be considered offline based on time
+                  const isActuallyOffline =
+                    PresenceService.isUserOffline(presence)
+
+                  console.log(
+                    `[ChatList] Presence check for ${participantId}:`,
+                    {
+                      isActuallyOffline,
+                      willShowAs: isActuallyOffline
+                        ? 'offline'
+                        : presence.status
+                    }
+                  )
+
+                  setPresenceData((prev) => {
+                    const newMap = new Map(prev)
+                    if (isActuallyOffline) {
+                      // Show as offline even if status says "online"
+                      newMap.set(participantId, {
+                        status: 'offline',
+                        lastSeen: presence.lastSeen
+                      })
+                    } else {
+                      newMap.set(participantId, presence)
+                    }
+                    return newMap
+                  })
+                } else {
+                  console.log(
+                    `[ChatList] No presence data for ${participantId}`
+                  )
+                }
+              }
+            )
+            presenceUnsubscribers.push(unsubscribe)
+          }
+
+          // Store unsubscribers for cleanup
+          ;(window as any).presenceUnsubscribers = presenceUnsubscribers
         }
 
         // Fetch user memberships for read status
@@ -101,8 +174,50 @@ export default function ChatListScreen() {
     return () => {
       unsubscribe()
       unsubscribeNetwork()
+      // Clean up presence listeners
+      if ((window as any).presenceUnsubscribers) {
+        ;(window as any).presenceUnsubscribers.forEach((unsub: () => void) =>
+          unsub()
+        )
+        ;(window as any).presenceUnsubscribers = []
+      }
     }
   }, [user])
+
+  // Periodic presence data refresh to update stale status
+  useEffect(() => {
+    const refreshPresenceData = () => {
+      setPresenceData((prev) => {
+        const newMap = new Map()
+        let hasChanges = false
+
+        prev.forEach((presence, userId) => {
+          // Re-check if user should be considered offline
+          const isActuallyOffline = PresenceService.isUserOffline(presence)
+
+          if (isActuallyOffline && presence.status === 'online') {
+            // User should be shown as offline
+            newMap.set(userId, {
+              status: 'offline',
+              lastSeen: presence.lastSeen
+            })
+            hasChanges = true
+          } else {
+            newMap.set(userId, presence)
+          }
+        })
+
+        return hasChanges ? newMap : prev
+      })
+    }
+
+    // Refresh every 5 seconds to catch stale presence
+    const interval = setInterval(() => {
+      console.log('[ChatList] Refreshing presence data...')
+      refreshPresenceData()
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const formatTimestamp = (timestamp: Date) => {
     const now = new Date()
@@ -145,6 +260,27 @@ export default function ChatListScreen() {
       return conversation.lastMessage.text
     }
     return 'No messages yet'
+  }
+
+  const getPresenceStatus = (conversation: Conversation) => {
+    if (conversation.type === 'direct') {
+      const otherParticipant = conversation.participants.find(
+        (id) => id !== user?.uid
+      )
+      if (otherParticipant) {
+        const presence = presenceData.get(otherParticipant)
+        if (presence) {
+          if (presence.status === 'online') {
+            return 'Online'
+          } else {
+            return `Last seen ${PresenceService.formatLastSeen(
+              presence.lastSeen
+            )}`
+          }
+        }
+      }
+    }
+    return null
   }
 
   const isMessageUnread = (conversation: Conversation) => {
@@ -204,43 +340,53 @@ export default function ChatListScreen() {
     router.push('/chat/new')
   }
 
-  const renderConversation = ({ item }: { item: Conversation }) => (
-    <TouchableOpacity
-      style={styles.conversationItem}
-      onPress={() => handleConversationPress(item)}
-    >
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {getConversationTitle(item).charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      </View>
+  const renderConversation = ({ item }: { item: Conversation }) => {
+    const presenceStatus = getPresenceStatus(item)
+    const isOnline = presenceStatus === 'Online'
 
-      <View style={styles.conversationContent}>
-        <View style={styles.conversationHeader}>
-          <Text style={styles.conversationTitle} numberOfLines={1}>
-            {getConversationTitle(item)}
-          </Text>
-          <Text style={styles.timestamp}>
-            {item.lastMessage
-              ? formatTimestamp(item.lastMessage.timestamp)
-              : ''}
-          </Text>
+    return (
+      <TouchableOpacity
+        style={styles.conversationItem}
+        onPress={() => handleConversationPress(item)}
+      >
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {getConversationTitle(item).charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          {isOnline && <View style={styles.onlineIndicator} />}
         </View>
 
-        <Text
-          style={[
-            styles.conversationSubtitle,
-            isMessageUnread(item) && styles.unreadMessage
-          ]}
-          numberOfLines={2}
-        >
-          {getConversationSubtitle(item)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  )
+        <View style={styles.conversationContent}>
+          <View style={styles.conversationHeader}>
+            <Text style={styles.conversationTitle} numberOfLines={1}>
+              {getConversationTitle(item)}
+            </Text>
+            <Text style={styles.timestamp}>
+              {item.lastMessage
+                ? formatTimestamp(item.lastMessage.timestamp)
+                : ''}
+            </Text>
+          </View>
+
+          <Text
+            style={[
+              styles.conversationSubtitle,
+              isMessageUnread(item) && styles.unreadMessage
+            ]}
+            numberOfLines={2}
+          >
+            {getConversationSubtitle(item)}
+          </Text>
+
+          {presenceStatus && (
+            <Text style={styles.presenceStatus}>{presenceStatus}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    )
+  }
 
   if (loading) {
     return (
@@ -410,7 +556,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5E7'
   },
   avatarContainer: {
-    marginRight: 12
+    marginRight: 12,
+    position: 'relative'
   },
   avatar: {
     width: 50,
@@ -454,5 +601,22 @@ const styles = StyleSheet.create({
   unreadMessage: {
     fontWeight: 'bold',
     color: '#000000'
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#34C759',
+    borderWidth: 2,
+    borderColor: '#FFFFFF'
+  },
+  presenceStatus: {
+    fontSize: 12,
+    color: '#34C759',
+    marginTop: 2,
+    fontWeight: '500'
   }
 })

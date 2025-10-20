@@ -1,6 +1,10 @@
 {
   "rules": {
-    ".read": "now < 1763532000000",  // 2025-11-19
-    ".write": "now < 1763532000000",  // 2025-11-19
+    "presence": {
+      "$userId": {
+        ".read": true,
+        ".write": "$userId === auth.uid"
+      }
+    }
   }
 }

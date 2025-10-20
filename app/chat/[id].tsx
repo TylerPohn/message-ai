@@ -2,12 +2,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
+import { PresenceData, PresenceService } from '@/services/presenceService'
 import { Conversation, Message } from '@/types/messaging'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -23,7 +25,7 @@ export default function ChatScreen() {
   const { user, userProfile } = useAuth()
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
-  const [conversation, setConversation] = useState<Conversation | null>(null)
+  const [conversation] = useState<Conversation | null>(null)
   const [messageText, setMessageText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -31,13 +33,72 @@ export default function ChatScreen() {
     NetworkService.getCurrentState()
   )
   const [queuedMessages, setQueuedMessages] = useState<any[]>([])
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([])
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [presenceData, setPresenceData] = useState<PresenceData | null>(null)
+  const [otherUserMembership, setOtherUserMembership] = useState<any>(null)
   const flatListRef = useRef<FlatList>(null)
+
+  // Platform-specific keyboard handling functions
+  const setupIOSKeyboardHandling = () => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      'keyboardWillShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height)
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }, 100)
+      }
+    )
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      'keyboardWillHide',
+      () => {
+        setKeyboardHeight(0)
+      }
+    )
+
+    return { keyboardWillShowListener, keyboardWillHideListener }
+  }
+
+  const setupAndroidKeyboardHandling = () => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event) => {
+        // Track keyboard height for Android to prevent accumulation issues
+        setKeyboardHeight(event.endCoordinates.height)
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }, 100)
+      }
+    )
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        // Reset keyboard height when keyboard is hidden
+        setKeyboardHeight(0)
+      }
+    )
+
+    return { keyboardDidShowListener, keyboardDidHideListener }
+  }
 
   useEffect(() => {
     if (!user || !id) return
 
     // Initialize network service
     NetworkService.initialize()
+
+    // Set up platform-specific keyboard listeners
+    let keyboardListeners: any = {}
+
+    if (Platform.OS === 'ios') {
+      keyboardListeners = setupIOSKeyboardHandling()
+    } else {
+      keyboardListeners = setupAndroidKeyboardHandling()
+    }
 
     // Set up network state listener
     const unsubscribeNetwork = NetworkService.subscribe((state) => {
@@ -65,6 +126,22 @@ export default function ChatScreen() {
           await MessagingService.markMessageAsDelivered(message.id)
         }
 
+        // Clean up optimistic messages that now have Firestore equivalents
+        setOptimisticMessages((prev) => {
+          return prev.filter((optimistic) => {
+            // Check if there's a Firestore message with similar content
+            const hasFirestoreEquivalent = uniqueMessages.some(
+              (firestore) =>
+                firestore.text === optimistic.text &&
+                firestore.senderId === optimistic.senderId &&
+                Math.abs(
+                  firestore.timestamp.getTime() - optimistic.timestamp.getTime()
+                ) < 5000
+            )
+            return !hasFirestoreEquivalent
+          })
+        })
+
         setMessages(uniqueMessages.reverse()) // Reverse to show oldest first
         setLoading(false)
       }
@@ -80,6 +157,15 @@ export default function ChatScreen() {
     return () => {
       unsubscribe()
       unsubscribeNetwork()
+
+      // Clean up platform-specific keyboard listeners
+      if (Platform.OS === 'ios') {
+        keyboardListeners.keyboardWillShowListener?.remove()
+        keyboardListeners.keyboardWillHideListener?.remove()
+      } else {
+        keyboardListeners.keyboardDidShowListener?.remove()
+        keyboardListeners.keyboardDidHideListener?.remove()
+      }
     }
   }, [user, id])
 
@@ -91,6 +177,88 @@ export default function ChatScreen() {
     }
     refreshQueuedMessages()
   }, [networkState.isOnline, id])
+
+  // Set up presence tracking for direct conversations
+  useEffect(() => {
+    if (!user || !id) return
+
+    let presenceUnsubscribe: (() => void) | null = null
+
+    const setupPresenceTracking = async () => {
+      try {
+        // Get conversation data to find other participant
+        const conversationData = await MessagingService.getConversation(id)
+        if (conversationData && conversationData.type === 'direct') {
+          const otherParticipant = conversationData.participants.find(
+            (participantId: string) => participantId !== user.uid
+          )
+          if (otherParticipant) {
+            // Set up presence tracking
+            presenceUnsubscribe = PresenceService.listenToUserPresence(
+              otherParticipant,
+              (presence) => {
+                if (presence) {
+                  console.log(
+                    `[ChatScreen] Received presence update for ${otherParticipant}:`,
+                    {
+                      status: presence.status,
+                      lastSeen: new Date(presence.lastSeen).toISOString(),
+                      age: Math.round((Date.now() - presence.lastSeen) / 1000)
+                    }
+                  )
+
+                  // Check if user should be considered offline based on time
+                  const isActuallyOffline =
+                    PresenceService.isUserOffline(presence)
+
+                  console.log(
+                    `[ChatScreen] Presence check for ${otherParticipant}:`,
+                    {
+                      isActuallyOffline,
+                      willShowAs: isActuallyOffline
+                        ? 'offline'
+                        : presence.status
+                    }
+                  )
+
+                  if (isActuallyOffline) {
+                    // Show as offline even if status says "online"
+                    setPresenceData({
+                      status: 'offline',
+                      lastSeen: presence.lastSeen
+                    })
+                  } else {
+                    setPresenceData(presence)
+                  }
+                } else {
+                  console.log(
+                    `[ChatScreen] No presence data for ${otherParticipant}`
+                  )
+                }
+              }
+            )
+
+            // Get other user's membership for read status
+            const membership = await MessagingService.getUserMembership(
+              id,
+              otherParticipant
+            )
+            setOtherUserMembership(membership)
+          }
+        }
+      } catch (error) {
+        console.error('Error setting up presence tracking:', error)
+      }
+    }
+
+    setupPresenceTracking()
+
+    return () => {
+      if (presenceUnsubscribe) {
+        presenceUnsubscribe()
+      }
+    }
+  }, [user, id])
 
   // Mark messages as read when conversation is opened
   useEffect(() => {
@@ -139,6 +307,26 @@ export default function ChatScreen() {
     setMessageText('')
     setSending(true)
 
+    // Create optimistic message for immediate UI feedback
+    const optimisticMessage: Message = {
+      id: `optimistic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      conversationId: id,
+      senderId: user.uid,
+      senderName: userProfile.displayName,
+      text,
+      timestamp: new Date(),
+      type: 'text',
+      status: 'sending'
+    }
+
+    // Add optimistic message immediately
+    setOptimisticMessages((prev) => [...prev, optimisticMessage])
+
+    // Scroll to bottom to show new message
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true })
+    }, 100)
+
     try {
       await MessagingService.sendMessage(
         id,
@@ -147,13 +335,16 @@ export default function ChatScreen() {
         text
       )
 
-      // The real-time listener will handle adding the message to the UI
-      // Scroll to bottom to show new message
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true })
-      }, 100)
+      // Remove optimistic message when real message appears
+      setOptimisticMessages((prev) =>
+        prev.filter((msg) => msg.id !== optimisticMessage.id)
+      )
     } catch (error) {
       console.error('Error sending message:', error)
+      // Remove optimistic message on error
+      setOptimisticMessages((prev) =>
+        prev.filter((msg) => msg.id !== optimisticMessage.id)
+      )
       // Restore message text on error
       setMessageText(text)
     } finally {
@@ -172,6 +363,7 @@ export default function ChatScreen() {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
     const isQueued = queuedMessages.some((q) => q.id === item.id)
+    const isOptimistic = item.id.startsWith('optimistic_')
 
     // Only show status on the most recent message sent by current user
     const allMessages = getAllMessages()
@@ -180,9 +372,13 @@ export default function ChatScreen() {
       userMessages.length > 0 &&
       userMessages[userMessages.length - 1].id === item.id
 
-    const getStatusIcon = (status: string, isQueued: boolean = false) => {
-      if (isQueued) {
-        return '⏳' // Spinner for queued messages
+    const getStatusIcon = (
+      status: string,
+      isQueued: boolean = false,
+      isOptimistic: boolean = false
+    ) => {
+      if (isQueued || isOptimistic) {
+        return '⏳' // Spinner for queued/optimistic messages
       }
 
       switch (status) {
@@ -192,15 +388,19 @@ export default function ChatScreen() {
         case 'delivered':
           return '✓' // Gray checkmark
         case 'read':
-          return '✓' // Blue checkmark (stays blue forever)
+          return '✓' // Green checkmark (stays green forever)
         default:
           return ''
       }
     }
 
-    const getStatusColor = (status: string, isQueued: boolean = false) => {
-      if (isQueued) {
-        return '#FF9500' // Orange for queued messages
+    const getStatusColor = (
+      status: string,
+      isQueued: boolean = false,
+      isOptimistic: boolean = false
+    ) => {
+      if (isQueued || isOptimistic) {
+        return '#FF9500' // Orange for queued/optimistic messages
       }
 
       switch (status) {
@@ -250,13 +450,21 @@ export default function ChatScreen() {
               <Text
                 style={[
                   styles.statusIcon,
-                  { color: getStatusColor(item.status, isQueued) }
+                  { color: getStatusColor(item.status, isQueued, isOptimistic) }
                 ]}
               >
-                {getStatusIcon(item.status, isQueued)}
+                {getStatusIcon(item.status, isQueued, isOptimistic)}
               </Text>
             )}
           </View>
+          {/* Show "Seen" indicator for read messages */}
+          {isOwnMessage &&
+            isMostRecentUserMessage &&
+            item.status === 'read' &&
+            otherUserMembership &&
+            otherUserMembership.lastReadMessageId === item.id && (
+              <Text style={styles.seenIndicator}>Seen</Text>
+            )}
         </View>
       </View>
     )
@@ -279,7 +487,7 @@ export default function ChatScreen() {
     return 'Group Chat'
   }
 
-  // Merge Firestore messages with queued messages
+  // Merge Firestore messages with queued and optimistic messages
   const getAllMessages = (): Message[] => {
     // Convert queued messages to Message format
     const queuedAsMessages: Message[] = queuedMessages.map((queued) => ({
@@ -295,9 +503,48 @@ export default function ChatScreen() {
       replyTo: queued.replyTo
     }))
 
-    // Combine and sort by timestamp
-    const allMessages = [...messages, ...queuedAsMessages]
-    return allMessages.sort(
+    // Combine all messages
+    const allMessages = [
+      ...messages,
+      ...queuedAsMessages,
+      ...optimisticMessages
+    ]
+
+    // Deduplicate messages by checking for similar content
+    const deduplicatedMessages = allMessages.reduce((acc, message) => {
+      // Check if this message already exists (same text, sender, and timestamp within 5 seconds)
+      const existingMessage = acc.find(
+        (existing) =>
+          existing.text === message.text &&
+          existing.senderId === message.senderId &&
+          Math.abs(existing.timestamp.getTime() - message.timestamp.getTime()) <
+            5000
+      )
+
+      if (!existingMessage) {
+        acc.push(message)
+      } else {
+        // If we have a Firestore message and a queued/optimistic message, prefer the Firestore one
+        if (
+          message.id.startsWith('queue_') ||
+          message.id.startsWith('optimistic_')
+        ) {
+          // Keep the existing (likely Firestore) message
+          return acc
+        } else {
+          // Replace with Firestore message
+          const index = acc.findIndex((m) => m.id === existingMessage.id)
+          if (index !== -1) {
+            acc[index] = message
+          }
+        }
+      }
+
+      return acc
+    }, [] as Message[])
+
+    // Sort by timestamp
+    return deduplicatedMessages.sort(
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     )
   }
@@ -315,8 +562,9 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        enabled={Platform.OS === 'ios'}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -328,6 +576,15 @@ export default function ChatScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>{getConversationTitle()}</Text>
+            {presenceData && (
+              <Text style={styles.presenceStatus}>
+                {presenceData.status === 'online'
+                  ? 'Online'
+                  : `Last seen ${PresenceService.formatLastSeen(
+                      presenceData.lastSeen
+                    )}`}
+              </Text>
+            )}
             {!networkState.isOnline && (
               <Text
                 style={[
@@ -357,7 +614,22 @@ export default function ChatScreen() {
         />
 
         {/* Message Input */}
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            Platform.OS === 'ios' &&
+              keyboardHeight > 0 &&
+              styles.inputContainerKeyboardIOS,
+            Platform.OS === 'android' && styles.inputContainerAndroid,
+            Platform.OS === 'android' &&
+              keyboardHeight > 0 &&
+              styles.inputContainerAndroidKeyboard,
+            Platform.OS === 'android' &&
+              keyboardHeight > 0 && {
+                marginBottom: keyboardHeight - 20
+              }
+          ]}
+        >
           <TextInput
             style={styles.textInput}
             value={messageText}
@@ -513,6 +785,17 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E5E7',
     minHeight: 60
   },
+  inputContainerKeyboardIOS: {
+    paddingBottom: 8
+  },
+  inputContainerAndroid: {
+    // Android baseline padding when keyboard is closed - makes input easier to reach
+    paddingBottom: 16
+  },
+  inputContainerAndroidKeyboard: {
+    // Android keyboard-active styling - reduced padding when keyboard is open
+    paddingBottom: 8
+  },
   textInput: {
     flex: 1,
     borderWidth: 1,
@@ -539,5 +822,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600'
+  },
+  presenceStatus: {
+    fontSize: 12,
+    color: '#34C759',
+    marginTop: 2,
+    fontWeight: '500'
+  },
+  seenIndicator: {
+    fontSize: 11,
+    color: '#34C759',
+    marginTop: 2,
+    textAlign: 'right',
+    fontWeight: '500'
   }
 })

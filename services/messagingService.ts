@@ -11,6 +11,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -182,6 +183,37 @@ export class MessagingService {
       errorCode.includes('timeout') ||
       errorCode.includes('network')
     )
+  }
+
+  // Get a single conversation by ID
+  static async getConversation(
+    conversationId: string
+  ): Promise<Conversation | null> {
+    try {
+      const conversationRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId)
+      const conversationSnap = await getDoc(conversationRef)
+
+      if (!conversationSnap.exists()) {
+        return null
+      }
+
+      const data = conversationSnap.data()
+      return {
+        id: conversationSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+        lastMessage: data.lastMessage
+          ? {
+              ...data.lastMessage,
+              timestamp: data.lastMessage.timestamp?.toDate() || new Date()
+            }
+          : undefined
+      } as Conversation
+    } catch (error) {
+      console.error('Error getting conversation:', error)
+      return null
+    }
   }
 
   // Get conversations for a user

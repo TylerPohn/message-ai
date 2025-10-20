@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/contexts/AuthContext'
+import Constants from 'expo-constants'
 import { Link, router } from 'expo-router'
 import React, { useState } from 'react'
 import {
@@ -21,6 +22,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
 
+  // Check if development mode is enabled
+  const isDevMode = Constants.expoConfig?.extra?.EXPO_ENVIRONMENT === 'dev'
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields')
@@ -35,6 +39,23 @@ export default function LoginScreen() {
       Alert.alert(
         'Login Failed',
         error.message || 'An error occurred during login'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDevLogin = async (devEmail: string, devPassword: string) => {
+    setEmail(devEmail)
+    setPassword(devPassword)
+    setLoading(true)
+    try {
+      await signIn(devEmail, devPassword)
+      router.replace('/chat/')
+    } catch (error: any) {
+      Alert.alert(
+        'Dev Login Failed',
+        error.message || 'An error occurred during dev login'
       )
     } finally {
       setLoading(false)
@@ -103,6 +124,46 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </Link>
           </View>
+
+          {/* Development Mode Login Buttons */}
+          {isDevMode && (
+            <View style={styles.devContainer}>
+              <ThemedText style={styles.devTitle}>Development Mode</ThemedText>
+              <ThemedText style={styles.devSubtitle}>
+                Quick login for testing
+              </ThemedText>
+
+              <TouchableOpacity
+                style={[
+                  styles.devButton,
+                  styles.devButton1,
+                  loading && styles.devButtonDisabled
+                ]}
+                onPress={() => handleDevLogin('tylerpohn@gmail.com', 'Abc123')}
+                disabled={loading}
+              >
+                <Text style={styles.devButtonText}>
+                  {loading ? 'Signing In...' : 'Login as Tyler'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.devButton,
+                  styles.devButton2,
+                  loading && styles.devButtonDisabled
+                ]}
+                onPress={() =>
+                  handleDevLogin('moblingoblin64@gmail.com', 'Abc123')
+                }
+                disabled={loading}
+              >
+                <Text style={styles.devButtonText}>
+                  {loading ? 'Signing In...' : 'Login as Moblin'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ThemedView>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -175,6 +236,49 @@ const styles = StyleSheet.create({
   link: {
     color: '#007AFF',
     fontSize: 16,
+    fontWeight: '600'
+  },
+  // Development mode styles
+  devContainer: {
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffeaa7'
+  },
+  devTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#856404',
+    textAlign: 'center',
+    marginBottom: 4
+  },
+  devSubtitle: {
+    fontSize: 14,
+    color: '#856404',
+    textAlign: 'center',
+    marginBottom: 16,
+    opacity: 0.8
+  },
+  devButton: {
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  devButton1: {
+    backgroundColor: '#ff6b6b'
+  },
+  devButton2: {
+    backgroundColor: '#4ecdc4'
+  },
+  devButtonDisabled: {
+    backgroundColor: '#ccc'
+  },
+  devButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600'
   }
 })
