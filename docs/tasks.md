@@ -7,7 +7,7 @@
 - [x] Initialize Expo project: `npx create-expo-app MessageAI`
 - [x] Install dependencies: `npm i firebase react-native-gifted-chat @tanstack/react-query @tanstack/react-query-devtools ulid`
 - [ ] Initialize Firebase project (Auth, Firestore, Functions, Storage)
-- [ ] Add `.env` and `firebaseConfig.ts`
+- [x] Add `.env` and `firebaseConfig.ts`
 - [ ] Enable Firestore offline persistence
 
 ### 2. Authentication
