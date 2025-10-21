@@ -162,6 +162,20 @@ export default function LoginScreen() {
                   {loading ? 'Signing In...' : 'Login as Moblin'}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.devButton,
+                  styles.devButton3,
+                  loading && styles.devButtonDisabled
+                ]}
+                onPress={() => handleDevLogin('daihorusu@gmail.com', 'Abc123')}
+                disabled={loading}
+              >
+                <Text style={styles.devButtonText}>
+                  {loading ? 'Signing In...' : 'Login as Daihorusu'}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </ThemedView>
@@ -272,6 +286,9 @@ const styles = StyleSheet.create({
   },
   devButton2: {
     backgroundColor: '#4ecdc4'
+  },
+  devButton3: {
+    backgroundColor: '#9b59b6'
   },
   devButtonDisabled: {
     backgroundColor: '#ccc'

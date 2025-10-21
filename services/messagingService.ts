@@ -5,7 +5,8 @@ import {
   Membership,
   Message,
   MessageStatus,
-  MessageType
+  MessageType,
+  UserProfile
 } from '@/types/messaging'
 import {
   addDoc,
@@ -476,6 +477,43 @@ export class MessagingService {
       } as Membership
     } catch (error) {
       console.error('Error fetching user membership:', error)
+      throw error
+    }
+  }
+
+  // Get all participants' profiles for a conversation
+  static async getConversationParticipants(
+    conversationId: string
+  ): Promise<UserProfile[]> {
+    try {
+      // First get all memberships for this conversation
+      const membershipsQuery = query(
+        collection(db, COLLECTIONS.MEMBERSHIPS),
+        where('conversationId', '==', conversationId)
+      )
+
+      const membershipsSnapshot = await getDocs(membershipsQuery)
+      const userIds = membershipsSnapshot.docs.map((doc) => doc.data().userId)
+
+      if (userIds.length === 0) {
+        return []
+      }
+
+      // Then get all user profiles
+      const usersQuery = query(
+        collection(db, COLLECTIONS.USERS),
+        where('__name__', 'in', userIds)
+      )
+
+      const usersSnapshot = await getDocs(usersQuery)
+      return usersSnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        uid: doc.id,
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        lastSeen: doc.data().lastSeen?.toDate() || new Date()
+      })) as UserProfile[]
+    } catch (error) {
+      console.error('Error fetching conversation participants:', error)
       throw error
     }
   }

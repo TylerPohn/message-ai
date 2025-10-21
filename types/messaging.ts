@@ -27,7 +27,7 @@ export interface Message {
   timestamp: Date
   type: 'text' | 'image' | 'system'
   imageURL?: string
-  status: 'sending' | 'sent' | 'delivered' | 'read'
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   replyTo?: string // ID of message being replied to
 }
 
@@ -64,7 +64,7 @@ export const COLLECTIONS = {
 } as const
 
 // Message status types
-export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read'
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 
 // Conversation types
 export type ConversationType = 'direct' | 'group'

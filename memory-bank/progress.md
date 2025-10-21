@@ -18,6 +18,7 @@
 - User profiles stored in `/users/{userId}` collection
 - AuthGuard component for route protection
 - Authentication system fully rebuilt after project reset
+- Logout function implemented with proper presence cleanup
 
 ### ✅ Project Structure
 
@@ -56,18 +57,31 @@
 - [x] **Status Indicators**: Simplified spinner → gray ✓ → green ✓
 - [x] **Most Recent Only**: Status shown only on latest message
 
-### 🔄 Presence & Read Receipts
+### ✅ Presence & Read Receipts - COMPLETED
 
-- [ ] **Realtime Database**: Set up presence tracking
-- [ ] **onDisconnect() Handlers**: Handle user disconnection
-- [ ] **Read Receipts**: Track `memberships/{userId}.lastReadMessageId`
-- [ ] **"Seen" Indicators**: Display read status in UI
+- [x] **Realtime Database**: Set up presence tracking with RTDB integration
+- [x] **onDisconnect() Handlers**: Handle user disconnection with automatic cleanup
+- [x] **Read Receipts**: Track `memberships/{userId}.lastReadMessageId`
+- [x] **"Seen" Indicators**: Display read status in UI with "Seen" text
+- [x] **Presence Heartbeat**: 30-second heartbeat system for accurate online status
+- [x] **Time-Based Offline Detection**: 30-second threshold for stale presence data
+- [x] **Airplane Mode Detection**: Users appear offline within 30 seconds of network loss
+- [x] **Presence Updates**: Real-time presence updates on Messages page
 
-### 🔄 Group Chats
+### ✅ UI Enhancements
 
-- [ ] **Group Creation**: Add group creation for 3+ participants
-- [ ] **Group Metadata**: Store title, photo, admin information
-- [ ] **Sender Display**: Show sender name/avatar in group messages
+- [x] **Logout Button**: Add logout button to Messages page header with confirmation dialog
+- [ ] **User Profile Settings**: Add settings/profile screen with logout option
+
+### ✅ Group Chats - COMPLETED
+
+- [x] **Group Creation**: Add group creation for 2+ participants (reduced from 3+ for better UX)
+- [x] **Multi-Select UI**: Checkbox selection with group mode toggle
+- [x] **Automatic Naming**: Comma-separated participant names (e.g., "Alice, Bob, Charlie")
+- [x] **Group Metadata**: Store admin information and participant data
+- [x] **Sender Display**: Show sender name/avatar in group messages with conditional rendering
+- [x] **Enhanced Message Display**: Sender info only shown when sender changes between messages
+- [x] **Integration**: Works with offline queue and real-time delivery systems
 
 ### 🔄 Notifications
 
@@ -87,10 +101,10 @@
 
 ### Next Immediate Tasks
 
-1. **PR1 Item 4: Real-Time Delivery** - Delivery states and offline queue
-2. **PR1 Item 5: Presence & Read Receipts** - RTDB presence and read tracking
-3. **PR1 Item 6: Group Chats** - Group creation and metadata
-4. **PR1 Item 7: Notifications** - Expo push notifications
+1. **PR1 Item 7: Notifications** - Expo push notifications
+2. **PR2 Item 1: Image Messaging** - Add image upload and display
+3. **PR2 Item 2: Typing Indicators** - Real-time typing status
+4. **PR2 Item 3: Profile Enhancements** - Profile pictures and status messages
 
 ### Blocked Items
 

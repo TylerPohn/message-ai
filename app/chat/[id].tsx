@@ -3,7 +3,12 @@ import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
-import { Conversation, Message } from '@/types/messaging'
+import {
+  Conversation,
+  Message,
+  MessageStatus,
+  UserProfile
+} from '@/types/messaging'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
@@ -22,10 +27,10 @@ import {
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
-  const [conversation] = useState<Conversation | null>(null)
+  const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messageText, setMessageText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -37,7 +42,18 @@ export default function ChatScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0)
   const [presenceData, setPresenceData] = useState<PresenceData | null>(null)
   const [otherUserMembership, setOtherUserMembership] = useState<any>(null)
+  const [participantProfiles, setParticipantProfiles] = useState<
+    Map<string, UserProfile>
+  >(new Map())
   const flatListRef = useRef<FlatList>(null)
+
+  // Handle logout redirect
+  useEffect(() => {
+    if (!user && !authLoading) {
+      console.log('User logged out, redirecting to login...')
+      router.replace('/auth/login')
+    }
+  }, [user, authLoading, router])
 
   // Platform-specific keyboard handling functions
   const setupIOSKeyboardHandling = () => {
@@ -90,6 +106,29 @@ export default function ChatScreen() {
 
     // Initialize network service
     NetworkService.initialize()
+
+    // Load conversation details and participant profiles
+    const loadConversationData = async () => {
+      try {
+        const conversationData = await MessagingService.getConversation(id)
+        if (conversationData) {
+          setConversation(conversationData)
+
+          // Load participant profiles for all conversations
+          const participants =
+            await MessagingService.getConversationParticipants(id)
+          const profilesMap = new Map<string, UserProfile>()
+          participants.forEach((profile) => {
+            profilesMap.set(profile.uid, profile)
+          })
+          setParticipantProfiles(profilesMap)
+        }
+      } catch (error) {
+        console.error('Error loading conversation data:', error)
+      }
+    }
+
+    loadConversationData()
 
     // Set up platform-specific keyboard listeners
     let keyboardListeners: any = {}
@@ -328,17 +367,29 @@ export default function ChatScreen() {
     }, 100)
 
     try {
-      await MessagingService.sendMessage(
+      const messageId = await MessagingService.sendMessage(
         id,
         user.uid,
         userProfile.displayName,
         text
       )
 
-      // Remove optimistic message when real message appears
-      setOptimisticMessages((prev) =>
-        prev.filter((msg) => msg.id !== optimisticMessage.id)
-      )
+      // Check if message was queued (offline)
+      if (messageId.startsWith('queue_')) {
+        // Update optimistic message to show as failed/queued
+        setOptimisticMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === optimisticMessage.id
+              ? { ...msg, status: 'failed' as MessageStatus }
+              : msg
+          )
+        )
+      } else {
+        // Successfully sent, remove optimistic message
+        setOptimisticMessages((prev) =>
+          prev.filter((msg) => msg.id !== optimisticMessage.id)
+        )
+      }
     } catch (error) {
       console.error('Error sending message:', error)
       // Remove optimistic message on error
@@ -359,14 +410,24 @@ export default function ChatScreen() {
     })
   }
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
     const isQueued = queuedMessages.some((q) => q.id === item.id)
     const isOptimistic = item.id.startsWith('optimistic_')
 
-    // Only show status on the most recent message sent by current user
+    // For group messages, determine if we should show sender info
     const allMessages = getAllMessages()
+    const showSenderInfo =
+      conversation?.type === 'group' &&
+      !isOwnMessage &&
+      (index === 0 || allMessages[index - 1].senderId !== item.senderId)
+
+    const senderProfile = participantProfiles.get(item.senderId)
+    const senderName =
+      senderProfile?.displayName || item.senderName || 'Unknown User'
+
+    // Only show status on the most recent message sent by current user
     const userMessages = allMessages.filter((msg) => msg.senderId === user?.uid)
     const isMostRecentUserMessage =
       userMessages.length > 0 &&
@@ -377,8 +438,16 @@ export default function ChatScreen() {
       isQueued: boolean = false,
       isOptimistic: boolean = false
     ) => {
-      if (isQueued || isOptimistic) {
-        return '⏳' // Spinner for queued/optimistic messages
+      if (isQueued) {
+        return '⏳' // Spinner for queued messages
+      }
+
+      if (isOptimistic && status === 'failed') {
+        return '✕' // Red X for failed optimistic messages
+      }
+
+      if (isOptimistic) {
+        return '⏳' // Spinner for optimistic messages
       }
 
       switch (status) {
@@ -389,6 +458,8 @@ export default function ChatScreen() {
           return '✓' // Gray checkmark
         case 'read':
           return '✓' // Green checkmark (stays green forever)
+        case 'failed':
+          return '✕' // Red X for failed/queued messages
         default:
           return ''
       }
@@ -399,8 +470,16 @@ export default function ChatScreen() {
       isQueued: boolean = false,
       isOptimistic: boolean = false
     ) => {
-      if (isQueued || isOptimistic) {
-        return '#FF9500' // Orange for queued/optimistic messages
+      if (isQueued) {
+        return '#FF9500' // Orange for queued messages
+      }
+
+      if (isOptimistic && status === 'failed') {
+        return '#FF3B30' // Red for failed optimistic messages
+      }
+
+      if (isOptimistic) {
+        return '#FF9500' // Orange for optimistic messages
       }
 
       switch (status) {
@@ -411,6 +490,8 @@ export default function ChatScreen() {
           return '#8E8E93' // Gray
         case 'read':
           return '#34C759' // Green (stays green forever)
+        case 'failed':
+          return '#FF3B30' // Red for failed/queued messages
         default:
           return '#8E8E93'
       }
@@ -423,6 +504,16 @@ export default function ChatScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage
         ]}
       >
+        {showSenderInfo && (
+          <View style={styles.senderInfo}>
+            <View style={styles.senderAvatar}>
+              <Text style={styles.senderAvatarText}>
+                {senderName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.senderName}>{senderName}</Text>
+          </View>
+        )}
         <View
           style={[
             styles.messageBubble,
@@ -473,18 +564,38 @@ export default function ChatScreen() {
   const getConversationTitle = () => {
     if (!conversation) return 'Chat'
 
-    if (conversation.type === 'group' && conversation.title) {
-      return conversation.title
+    if (conversation.type === 'group') {
+      // Get all participants except current user
+      const otherParticipants = conversation.participants.filter(
+        (id) => id !== user?.uid
+      )
+
+      // Map to display names using participantProfiles
+      const names = otherParticipants
+        .map((id) => participantProfiles.get(id)?.displayName || 'Unknown')
+        .filter((name) => name !== 'Unknown')
+
+      if (names.length === 0) {
+        return 'Group Chat'
+      }
+
+      return names.join(', ')
     }
 
     if (conversation.type === 'direct') {
       const otherParticipant = conversation.participants.find(
         (id) => id !== user?.uid
       )
-      return otherParticipant || 'Unknown User'
+
+      if (otherParticipant) {
+        const userProfile = participantProfiles.get(otherParticipant)
+        return userProfile?.displayName || 'Unknown User'
+      }
+
+      return 'Unknown User'
     }
 
-    return 'Group Chat'
+    return 'Chat'
   }
 
   // Merge Firestore messages with queued and optimistic messages
@@ -503,7 +614,7 @@ export default function ChatScreen() {
       replyTo: queued.replyTo
     }))
 
-    // Combine all messages
+    // Combine all messages - let the main deduplication handle everything
     const allMessages = [
       ...messages,
       ...queuedAsMessages,
@@ -835,5 +946,30 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'right',
     fontWeight: '500'
+  },
+  senderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginLeft: 8
+  },
+  senderAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#8E8E93',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8
+  },
+  senderAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  senderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93'
   }
 })

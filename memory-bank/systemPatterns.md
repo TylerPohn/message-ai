@@ -86,6 +86,16 @@ Firestore ← Real-time Listeners ← UI Updates
 - **Status Indicators**: Spinner (⏳) → Gray checkmark (✓) → Green checkmark (✓)
 - **UI Integration**: Queued messages display in chat with queue indicators
 
+### Group Chat Patterns
+
+- **Multi-Select UI**: Checkbox-based participant selection with group mode toggle
+- **Automatic Naming**: Comma-separated participant names (e.g., "Alice, Bob, Charlie")
+- **Sender Display**: Conditional sender name/avatar display in group messages
+- **Message Threading**: Sender info only shown when sender changes between consecutive messages
+- **Group Metadata**: Admin assignment and participant data storage
+- **Avatar Generation**: First participant's initial for group avatars
+- **Integration**: Seamless integration with offline queue and real-time delivery systems
+
 ### AI Features
 
 - **Cloud Functions**: `/ai/invoke` endpoint with tool routing

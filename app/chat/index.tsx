@@ -19,7 +19,7 @@ import {
 } from 'react-native'
 
 export default function ChatListScreen() {
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, logout } = useAuth()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +36,14 @@ export default function ChatListScreen() {
   const [presenceData, setPresenceData] = useState<Map<string, PresenceData>>(
     new Map()
   )
+
+  // Handle logout redirect
+  useEffect(() => {
+    if (!user && !loading) {
+      console.log('User logged out, redirecting to login...')
+      router.replace('/auth/login')
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     if (!user) return
@@ -234,8 +242,23 @@ export default function ChatListScreen() {
   }
 
   const getConversationTitle = (conversation: Conversation) => {
-    if (conversation.type === 'group' && conversation.title) {
-      return conversation.title
+    if (conversation.type === 'group') {
+      // Get all participants except current user
+      const otherParticipants = conversation.participants.filter(
+        (id) => id !== user?.uid
+      )
+
+      // Map to display names
+      const names = otherParticipants
+        .map((id) => userProfiles.get(id)?.displayName || 'Unknown')
+        .filter((name) => name !== 'Unknown')
+
+      if (names.length === 0) {
+        return 'Group Chat'
+      }
+
+      // Return comma-separated list
+      return names.join(', ')
     }
 
     // For direct messages, show the other participant's display name
@@ -252,11 +275,16 @@ export default function ChatListScreen() {
       return 'Unknown User'
     }
 
-    return 'Group Chat'
+    return 'Chat'
   }
 
   const getConversationSubtitle = (conversation: Conversation) => {
     if (conversation.lastMessage) {
+      // For group messages, show sender name
+      if (conversation.type === 'group') {
+        return `${conversation.lastMessage.senderName}: ${conversation.lastMessage.text}`
+      }
+      // For direct messages, just show the message text
       return conversation.lastMessage.text
     }
     return 'No messages yet'
@@ -340,6 +368,29 @@ export default function ChatListScreen() {
     router.push('/chat/new')
   }
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sign Out',
+      `Are you sure you want to sign out, ${userProfile?.displayName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout()
+              // User will be redirected to login screen automatically
+            } catch (error) {
+              console.error('Logout error:', error)
+              Alert.alert('Error', 'Failed to sign out. Please try again.')
+            }
+          }
+        }
+      ]
+    )
+  }
+
   const renderConversation = ({ item }: { item: Conversation }) => {
     const presenceStatus = getPresenceStatus(item)
     const isOnline = presenceStatus === 'Online'
@@ -352,7 +403,12 @@ export default function ChatListScreen() {
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {getConversationTitle(item).charAt(0).toUpperCase()}
+              {item.type === 'group'
+                ? item.participants
+                    .filter((id) => id !== user?.uid)[0]
+                    ?.charAt(0)
+                    .toUpperCase() || 'G'
+                : getConversationTitle(item).charAt(0).toUpperCase()}
             </Text>
           </View>
           {isOnline && <View style={styles.onlineIndicator} />}
@@ -426,6 +482,9 @@ export default function ChatListScreen() {
           >
             <Text style={styles.testDataButtonText}>Test</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.newChatButton}
             onPress={handleNewConversation}
@@ -484,6 +543,17 @@ const styles = StyleSheet.create({
     borderRadius: 16
   },
   testDataButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  logoutButton: {
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  logoutButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600'

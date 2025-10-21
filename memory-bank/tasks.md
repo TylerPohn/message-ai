@@ -19,6 +19,7 @@
 - [x] Create Login/Signup screens
 - [x] Store user profiles in `/users/{userId}`
 - [x] **REBUILT**: Authentication system recreated after reset - all auth components restored
+- [x] **Add Logout Button**: Implement logout button in Messages page header with confirmation dialog
 
 ### 3. Basic Chat Structure
 
@@ -55,9 +56,13 @@
 
 ### 6. Group Chats
 
-- [ ] Add group creation (3+ participants)
-- [ ] Store metadata (title, photo, admin)
-- [ ] Display sender name/avatar in messages
+- [x] Add group creation (2+ participants - reduced for better UX)
+- [x] Multi-select UI with checkboxes and group mode toggle
+- [x] Automatic group naming with comma-separated participant names
+- [x] Store metadata (admin, participant data)
+- [x] Display sender name/avatar in messages with conditional rendering
+- [x] Enhanced message display (sender info only when sender changes)
+- [x] Integration with offline queue and real-time delivery systems
 
 ### 7. Notifications
 

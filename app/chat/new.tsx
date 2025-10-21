@@ -16,13 +16,23 @@ import {
 } from 'react-native'
 
 export default function NewConversationScreen() {
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [creating, setCreating] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([])
+  const [isGroupMode, setIsGroupMode] = useState(false)
+
+  // Handle logout redirect
+  useEffect(() => {
+    if (!user && !authLoading) {
+      console.log('User logged out, redirecting to login...')
+      router.replace('/auth/login')
+    }
+  }, [user, authLoading, router])
 
   useEffect(() => {
     if (!user) return
@@ -71,6 +81,19 @@ export default function NewConversationScreen() {
       return
     }
 
+    if (isGroupMode) {
+      // Toggle user selection in group mode
+      const isSelected = selectedUsers.some((u) => u.uid === selectedUser.uid)
+      if (isSelected) {
+        setSelectedUsers((prev) =>
+          prev.filter((u) => u.uid !== selectedUser.uid)
+        )
+      } else {
+        setSelectedUsers((prev) => [...prev, selectedUser])
+      }
+      return
+    }
+
     try {
       setCreating(true)
       console.log('Creating conversation with:', selectedUser.displayName)
@@ -110,6 +133,56 @@ export default function NewConversationScreen() {
     }
   }
 
+  const handleCreateGroup = async () => {
+    if (selectedUsers.length < 2) {
+      Alert.alert('Error', 'Please select at least 2 people to create a group')
+      return
+    }
+
+    if (!user || !userProfile) {
+      Alert.alert('Error', 'User not authenticated')
+      return
+    }
+
+    if (creating) {
+      console.log('Already creating a group')
+      return
+    }
+
+    try {
+      setCreating(true)
+
+      console.log(
+        'Creating group with:',
+        selectedUsers.map((u) => u.displayName)
+      )
+
+      // Create group conversation without title
+      const allParticipants = [user.uid, ...selectedUsers.map((u) => u.uid)]
+      const conversationId = await MessagingService.createConversation(
+        allParticipants,
+        'group',
+        undefined, // No title
+        user.uid // Creator becomes admin
+      )
+
+      console.log('Group created, navigating to:', conversationId)
+      router.replace(`/chat/${conversationId}`)
+    } catch (error) {
+      console.error('Error creating group:', error)
+      Alert.alert(
+        'Error',
+        `Failed to create group: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      )
+    } finally {
+      setCreating(false)
+      setSelectedUsers([])
+      setIsGroupMode(false)
+    }
+  }
+
   const formatLastSeen = (lastSeen: Date) => {
     const now = new Date()
     const diff = now.getTime() - lastSeen.getTime()
@@ -124,46 +197,60 @@ export default function NewConversationScreen() {
     return lastSeen.toLocaleDateString()
   }
 
-  const renderUser = ({ item }: { item: UserProfile }) => (
-    <TouchableOpacity
-      style={styles.userItem}
-      onPress={() => handleUserSelect(item)}
-      disabled={creating}
-    >
-      <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {item.displayName.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      </View>
+  const renderUser = ({ item }: { item: UserProfile }) => {
+    const isSelected = selectedUsers.some((u) => u.uid === item.uid)
 
-      <View style={styles.userContent}>
-        <View style={styles.userHeader}>
-          <Text style={styles.userName} numberOfLines={1}>
-            {item.displayName}
-          </Text>
-          <Text style={styles.lastSeen}>{formatLastSeen(item.lastSeen)}</Text>
+    return (
+      <TouchableOpacity
+        style={styles.userItem}
+        onPress={() => handleUserSelect(item)}
+        disabled={creating}
+      >
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {item.displayName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
         </View>
 
-        <Text style={styles.userEmail} numberOfLines={1}>
-          {item.email}
-        </Text>
+        <View style={styles.userContent}>
+          <View style={styles.userHeader}>
+            <Text style={styles.userName} numberOfLines={1}>
+              {item.displayName}
+            </Text>
+            <Text style={styles.lastSeen}>{formatLastSeen(item.lastSeen)}</Text>
+          </View>
 
-        {item.status && (
-          <Text style={styles.userStatus} numberOfLines={1}>
-            {item.status}
+          <Text style={styles.userEmail} numberOfLines={1}>
+            {item.email}
           </Text>
+
+          {item.status && (
+            <Text style={styles.userStatus} numberOfLines={1}>
+              {item.status}
+            </Text>
+          )}
+        </View>
+
+        {isGroupMode && (
+          <View style={styles.checkboxContainer}>
+            <View
+              style={[styles.checkbox, isSelected && styles.checkboxSelected]}
+            >
+              {isSelected && <Text style={styles.checkboxText}>✓</Text>}
+            </View>
+          </View>
         )}
-      </View>
 
-      {creating && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size='small' color='#007AFF' />
-        </View>
-      )}
-    </TouchableOpacity>
-  )
+        {creating && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size='small' color='#007AFF' />
+          </View>
+        )}
+      </TouchableOpacity>
+    )
+  }
 
   if (loading) {
     return (
@@ -183,9 +270,59 @@ export default function NewConversationScreen() {
         >
           <Text style={styles.backButtonText}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Message</Text>
+        <Text style={styles.headerTitle}>
+          {isGroupMode ? 'New Group' : 'New Message'}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
+
+      <View style={styles.modeToggleContainer}>
+        <TouchableOpacity
+          style={[styles.modeToggle, !isGroupMode && styles.modeToggleActive]}
+          onPress={() => {
+            setIsGroupMode(false)
+            setSelectedUsers([])
+          }}
+        >
+          <Text
+            style={[
+              styles.modeToggleText,
+              !isGroupMode && styles.modeToggleTextActive
+            ]}
+          >
+            Direct
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeToggle, isGroupMode && styles.modeToggleActive]}
+          onPress={() => setIsGroupMode(true)}
+        >
+          <Text
+            style={[
+              styles.modeToggleText,
+              isGroupMode && styles.modeToggleTextActive
+            ]}
+          >
+            Group
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {isGroupMode && selectedUsers.length > 0 && (
+        <View style={styles.selectedUsersContainer}>
+          <Text style={styles.selectedUsersText}>
+            {selectedUsers.length} selected
+          </Text>
+          {selectedUsers.length >= 2 && (
+            <TouchableOpacity
+              style={styles.createGroupButton}
+              onPress={handleCreateGroup}
+            >
+              <Text style={styles.createGroupButtonText}>Create Group</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <View style={styles.searchContainer}>
         <TextInput
@@ -361,5 +498,83 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  modeToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 4
+  },
+  modeToggle: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center'
+  },
+  modeToggleActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2
+  },
+  modeToggleText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#8E8E93'
+  },
+  modeToggleTextActive: {
+    color: '#000000'
+  },
+  selectedUsersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F2F2F7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E7'
+  },
+  selectedUsersText: {
+    fontSize: 14,
+    color: '#8E8E93'
+  },
+  createGroupButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16
+  },
+  createGroupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  checkboxContainer: {
+    marginLeft: 12,
+    justifyContent: 'center'
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#8E8E93',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  checkboxSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF'
+  },
+  checkboxText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold'
   }
 })
