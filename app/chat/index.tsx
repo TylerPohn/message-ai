@@ -280,6 +280,14 @@ export default function ChatListScreen() {
 
   const getConversationSubtitle = (conversation: Conversation) => {
     if (conversation.lastMessage) {
+      // Handle image messages
+      if (conversation.lastMessage.type === 'image') {
+        if (conversation.type === 'group') {
+          return `${conversation.lastMessage.senderName}: 📷 Photo`
+        }
+        return '📷 Photo'
+      }
+
       // For group messages, show sender name
       if (conversation.type === 'group') {
         return `${conversation.lastMessage.senderName}: ${conversation.lastMessage.text}`

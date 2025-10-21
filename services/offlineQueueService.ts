@@ -8,6 +8,9 @@ interface QueuedMessage {
   text: string
   type: 'text' | 'image' | 'system'
   imageURL?: string
+  thumbnailURL?: string
+  imageMetadata?: { width: number; height: number; size: number }
+  localImageURI?: string
   replyTo?: string
   timestamp: number
   retryCount: number
@@ -45,6 +48,9 @@ export class OfflineQueueService {
     text: string,
     type: 'text' | 'image' | 'system' = 'text',
     imageURL?: string,
+    thumbnailURL?: string,
+    imageMetadata?: { width: number; height: number; size: number },
+    localImageURI?: string,
     replyTo?: string
   ): Promise<string> {
     const queuedMessage: QueuedMessage = {
@@ -55,6 +61,9 @@ export class OfflineQueueService {
       text,
       type,
       imageURL,
+      thumbnailURL,
+      imageMetadata,
+      localImageURI,
       replyTo,
       timestamp: Date.now(),
       retryCount: 0,

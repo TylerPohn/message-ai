@@ -116,7 +116,7 @@ export default function LoginScreen() {
 
           <View style={styles.linkContainer}>
             <ThemedText style={styles.linkText}>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
             </ThemedText>
             <Link href='/auth/signup' asChild>
               <TouchableOpacity>

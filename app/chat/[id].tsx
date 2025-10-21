@@ -1,4 +1,6 @@
+import ImageViewer from '@/components/ImageViewer'
 import { useAuth } from '@/contexts/AuthContext'
+import { ImageService } from '@/services/imageService'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
@@ -12,8 +14,11 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -45,6 +50,10 @@ export default function ChatScreen() {
   const [participantProfiles, setParticipantProfiles] = useState<
     Map<string, UserProfile>
   >(new Map())
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageViewerVisible, setImageViewerVisible] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const flatListRef = useRef<FlatList>(null)
 
   // Handle logout redirect
@@ -339,6 +348,93 @@ export default function ChatScreen() {
     return () => clearTimeout(timeoutId)
   }, [user, id, messages])
 
+  // Handle image picker
+  const handleImagePicker = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Camera', 'Photo Library'],
+          cancelButtonIndex: 0
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            handleTakePhoto()
+          } else if (buttonIndex === 2) {
+            handleSelectFromGallery()
+          }
+        }
+      )
+    } else {
+      Alert.alert('Select Image', 'Choose an option', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Camera', onPress: handleTakePhoto },
+        { text: 'Photo Library', onPress: handleSelectFromGallery }
+      ])
+    }
+  }
+
+  const handleTakePhoto = async () => {
+    try {
+      const result = await ImageService.pickImageFromCamera()
+      if (result && !result.canceled) {
+        setSelectedImage(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error)
+      Alert.alert('Error', 'Failed to take photo. Please try again.')
+    }
+  }
+
+  const handleSelectFromGallery = async () => {
+    try {
+      const result = await ImageService.pickImageFromGallery()
+      if (result && !result.canceled) {
+        setSelectedImage(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error)
+      Alert.alert('Error', 'Failed to select image. Please try again.')
+    }
+  }
+
+  const handleSendImage = async () => {
+    if (!selectedImage || !user || !userProfile || uploadingImage) return
+
+    setUploadingImage(true)
+    setUploadProgress(0)
+
+    try {
+      // Process and upload image
+      const uploadResult = await ImageService.processAndUploadImage(
+        selectedImage,
+        id,
+        user.uid,
+        (progress) => setUploadProgress(progress)
+      )
+
+      // Send message with image
+      await MessagingService.sendMessage(
+        id,
+        user.uid,
+        userProfile.displayName,
+        '📷 Photo',
+        'image',
+        uploadResult.imageURL,
+        uploadResult.thumbnailURL,
+        uploadResult.metadata
+      )
+
+      // Clean up
+      setSelectedImage(null)
+      setUploadProgress(0)
+    } catch (error) {
+      console.error('Error sending image:', error)
+      Alert.alert('Error', 'Failed to send image. Please try again.')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || !user || !userProfile || sending) return
 
@@ -371,7 +467,8 @@ export default function ChatScreen() {
         id,
         user.uid,
         userProfile.displayName,
-        text
+        text,
+        'text'
       )
 
       // Check if message was queued (offline)
@@ -520,14 +617,33 @@ export default function ChatScreen() {
             isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble
           ]}
         >
-          <Text
-            style={[
-              styles.messageText,
-              isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-            ]}
-          >
-            {item.text}
-          </Text>
+          {item.type === 'image' && item.thumbnailURL ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedImage(item.imageURL || '')
+                setImageViewerVisible(true)
+              }}
+              style={styles.imageContainer}
+            >
+              <Image
+                source={{ uri: item.thumbnailURL }}
+                style={styles.messageImage}
+                resizeMode='cover'
+              />
+              <View style={styles.imageOverlay}>
+                <Text style={styles.imageText}>📷 Photo</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <Text
+              style={[
+                styles.messageText,
+                isOwnMessage ? styles.ownMessageText : styles.otherMessageText
+              ]}
+            >
+              {item.text}
+            </Text>
+          )}
           <View style={styles.messageFooter}>
             <Text
               style={[
@@ -724,6 +840,45 @@ export default function ChatScreen() {
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
+        {/* Image Preview */}
+        {selectedImage && (
+          <View style={styles.imagePreviewContainer}>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.imagePreview}
+            />
+            <View style={styles.imagePreviewActions}>
+              <TouchableOpacity
+                style={styles.cancelImageButton}
+                onPress={() => setSelectedImage(null)}
+              >
+                <Text style={styles.cancelImageText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sendImageButton,
+                  uploadingImage && styles.sendImageButtonDisabled
+                ]}
+                onPress={handleSendImage}
+                disabled={uploadingImage}
+              >
+                <Text style={styles.sendImageText}>
+                  {uploadingImage
+                    ? `Uploading ${Math.round(uploadProgress)}%`
+                    : 'Send'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {uploadingImage && (
+              <View style={styles.progressBar}>
+                <View
+                  style={[styles.progressFill, { width: `${uploadProgress}%` }]}
+                />
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Message Input */}
         <View
           style={[
@@ -741,6 +896,13 @@ export default function ChatScreen() {
               }
           ]}
         >
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={handleImagePicker}
+            disabled={uploadingImage}
+          >
+            <Text style={styles.attachButtonText}>📷</Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.textInput}
             value={messageText}
@@ -763,6 +925,20 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Image Viewer Modal */}
+      <ImageViewer
+        visible={imageViewerVisible}
+        imageURL={selectedImage || ''}
+        senderName={
+          conversation?.type === 'group' ? 'Unknown' : getConversationTitle()
+        }
+        timestamp={new Date()}
+        onClose={() => {
+          setImageViewerVisible(false)
+          setSelectedImage(null)
+        }}
+      />
     </SafeAreaView>
   )
 }
@@ -971,5 +1147,98 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#8E8E93'
+  },
+  // Image-related styles
+  imageContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    maxWidth: 200,
+    maxHeight: 200
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 4,
+    paddingHorizontal: 8
+  },
+  imageText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500'
+  },
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  attachButtonText: {
+    fontSize: 20
+  },
+  imagePreviewContainer: {
+    backgroundColor: '#F2F2F7',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E7'
+  },
+  imagePreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 12
+  },
+  imagePreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  cancelImageButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#FF3B30'
+  },
+  cancelImageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  sendImageButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#007AFF'
+  },
+  sendImageButtonDisabled: {
+    backgroundColor: '#8E8E93'
+  },
+  sendImageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#E5E5E7',
+    borderRadius: 2,
+    marginTop: 8,
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 2
   }
 })

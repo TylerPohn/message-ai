@@ -13,6 +13,7 @@ export interface Conversation {
     senderId: string
     senderName: string
     timestamp: Date
+    type: 'text' | 'image' | 'system'
   }
   createdAt: Date
   updatedAt: Date
@@ -27,6 +28,12 @@ export interface Message {
   timestamp: Date
   type: 'text' | 'image' | 'system'
   imageURL?: string
+  thumbnailURL?: string
+  imageMetadata?: {
+    width: number
+    height: number
+    size: number
+  }
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   replyTo?: string // ID of message being replied to
 }

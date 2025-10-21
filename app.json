@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for messaging.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for messaging."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -39,6 +43,13 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them in messages.",
+          "cameraPermission": "The app accesses your camera to let you take photos for messages."
         }
       ]
     ],

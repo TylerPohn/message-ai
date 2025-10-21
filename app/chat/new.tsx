@@ -18,7 +18,6 @@ import {
 export default function NewConversationScreen() {
   const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [users, setUsers] = useState<UserProfile[]>([])
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -41,7 +40,6 @@ export default function NewConversationScreen() {
       try {
         setLoading(true)
         const allUsers = await UserService.getAllUsers(user.uid)
-        setUsers(allUsers)
         setFilteredUsers(allUsers)
       } catch (error) {
         console.error('Error loading users:', error)

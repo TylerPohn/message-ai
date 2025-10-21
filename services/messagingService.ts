@@ -86,6 +86,8 @@ export class MessagingService {
     text: string,
     type: MessageType = 'text',
     imageURL?: string,
+    thumbnailURL?: string,
+    imageMetadata?: { width: number; height: number; size: number },
     replyTo?: string
   ): Promise<string> {
     // Check if we're online
@@ -98,6 +100,9 @@ export class MessagingService {
         text,
         type,
         imageURL,
+        thumbnailURL,
+        imageMetadata,
+        undefined, // localImageURI - not available when offline
         replyTo
       )
       return queuedId
@@ -119,6 +124,12 @@ export class MessagingService {
       if (imageURL) {
         messageData.imageURL = imageURL
       }
+      if (thumbnailURL) {
+        messageData.thumbnailURL = thumbnailURL
+      }
+      if (imageMetadata) {
+        messageData.imageMetadata = imageMetadata
+      }
       if (replyTo) {
         messageData.replyTo = replyTo
       }
@@ -137,7 +148,8 @@ export class MessagingService {
           text,
           senderId,
           senderName,
-          timestamp: serverTimestamp()
+          timestamp: serverTimestamp(),
+          type
         },
         updatedAt: serverTimestamp()
       })
@@ -159,6 +171,9 @@ export class MessagingService {
           text,
           type,
           imageURL,
+          thumbnailURL,
+          imageMetadata,
+          undefined, // localImageURI - not available when offline
           replyTo
         )
         return queuedId

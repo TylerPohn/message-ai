@@ -1,5 +1,5 @@
 import { Image } from 'expo-image'
-import { useRouter } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
@@ -10,7 +10,6 @@ import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/contexts/AuthContext'
 import { TestDataUtils } from '@/utils/testData'
-import { Link } from 'expo-router'
 
 export default function HomeScreen() {
   const { user, userProfile, logout } = useAuth()
