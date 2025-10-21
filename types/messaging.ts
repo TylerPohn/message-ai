@@ -62,12 +62,21 @@ export interface UserProfile {
   }
 }
 
+export interface Contact {
+  id: string
+  userId: string
+  contactUserId: string
+  addedAt: Date
+  addedFrom: 'manual' | 'conversation'
+}
+
 // Firestore collection names
 export const COLLECTIONS = {
   CONVERSATIONS: 'conversations',
   MESSAGES: 'messages',
   MEMBERSHIPS: 'memberships',
-  USERS: 'users'
+  USERS: 'users',
+  CONTACTS: 'contacts'
 } as const
 
 // Message status types

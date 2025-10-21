@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
+import { ContactsService } from '@/services/contactsService'
 import { MessagingService } from '@/services/messagingService'
 import { UserService } from '@/services/userService'
 import { UserProfile } from '@/types/messaging'
@@ -19,11 +20,16 @@ export default function NewConversationScreen() {
   const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
+  const [contacts, setContacts] = useState<UserProfile[]>([])
+  const [filteredContacts, setFilteredContacts] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [creating, setCreating] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([])
   const [isGroupMode, setIsGroupMode] = useState(false)
+  const [contactStatuses, setContactStatuses] = useState<Map<string, boolean>>(
+    new Map()
+  )
 
   // Handle logout redirect
   useEffect(() => {
@@ -36,37 +42,66 @@ export default function NewConversationScreen() {
   useEffect(() => {
     if (!user) return
 
-    const loadUsers = async () => {
+    const loadUsersAndContacts = async () => {
       try {
         setLoading(true)
         const allUsers = await UserService.getAllUsers(user.uid)
+        const userContacts = await ContactsService.getUserContacts(user.uid)
+
         setFilteredUsers(allUsers)
+        setContacts(userContacts)
+
+        // Check contact statuses for all users
+        const statusMap = new Map<string, boolean>()
+        for (const userProfile of allUsers) {
+          const isContact = await ContactsService.isContact(
+            user.uid,
+            userProfile.uid
+          )
+          statusMap.set(userProfile.uid, isContact)
+        }
+        setContactStatuses(statusMap)
       } catch (error) {
-        console.error('Error loading users:', error)
+        console.error('Error loading users and contacts:', error)
         Alert.alert('Error', 'Failed to load users')
       } finally {
         setLoading(false)
       }
     }
 
-    loadUsers()
+    loadUsersAndContacts()
   }, [user])
 
   useEffect(() => {
-    const searchUsers = async () => {
+    const searchUsersAndContacts = async () => {
       if (!user) return
 
       try {
         const results = await UserService.searchUsers(user.uid, searchTerm)
         setFilteredUsers(results)
+
+        // Filter contacts based on search term
+        if (!searchTerm.trim()) {
+          setFilteredContacts(contacts)
+        } else {
+          const searchLower = searchTerm.toLowerCase()
+          const filtered = contacts.filter(
+            (contact) =>
+              contact.displayName.toLowerCase().includes(searchLower) ||
+              contact.email.toLowerCase().includes(searchLower) ||
+              (contact.status &&
+                contact.status.toLowerCase().includes(searchLower))
+          )
+          setFilteredContacts(filtered)
+        }
       } catch (error) {
-        console.error('Error searching users:', error)
+        console.error('Error searching users and contacts:', error)
       }
     }
 
-    const timeoutId = setTimeout(searchUsers, 300) // Debounce search
+    const timeoutId = setTimeout(searchUsersAndContacts, 300) // Debounce search
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, user])
+  }, [searchTerm, user, contacts])
 
   const handleUserSelect = async (selectedUser: UserProfile) => {
     if (!user || !userProfile) {
@@ -128,6 +163,32 @@ export default function NewConversationScreen() {
       )
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleAddContact = async (userProfile: UserProfile) => {
+    if (!user) return
+
+    try {
+      await ContactsService.addContact(user.uid, userProfile.uid, 'manual')
+      setContactStatuses((prev) => new Map(prev).set(userProfile.uid, true))
+      Alert.alert('Success', `${userProfile.displayName} added to contacts`)
+    } catch (error) {
+      console.error('Error adding contact:', error)
+      Alert.alert('Error', 'Failed to add contact')
+    }
+  }
+
+  const handleRemoveContact = async (userProfile: UserProfile) => {
+    if (!user) return
+
+    try {
+      await ContactsService.removeContact(user.uid, userProfile.uid)
+      setContactStatuses((prev) => new Map(prev).set(userProfile.uid, false))
+      Alert.alert('Success', `${userProfile.displayName} removed from contacts`)
+    } catch (error) {
+      console.error('Error removing contact:', error)
+      Alert.alert('Error', 'Failed to remove contact')
     }
   }
 
@@ -197,6 +258,7 @@ export default function NewConversationScreen() {
 
   const renderUser = ({ item }: { item: UserProfile }) => {
     const isSelected = selectedUsers.some((u) => u.uid === item.uid)
+    const isContact = contactStatuses.get(item.uid) || false
 
     return (
       <TouchableOpacity
@@ -210,6 +272,7 @@ export default function NewConversationScreen() {
               {item.displayName.charAt(0).toUpperCase()}
             </Text>
           </View>
+          {isContact && <View style={styles.contactBadge} />}
         </View>
 
         <View style={styles.userContent}>
@@ -230,6 +293,26 @@ export default function NewConversationScreen() {
             </Text>
           )}
         </View>
+
+        {!isGroupMode && (
+          <View style={styles.contactActionContainer}>
+            {isContact ? (
+              <TouchableOpacity
+                style={styles.removeContactButton}
+                onPress={() => handleRemoveContact(item)}
+              >
+                <Text style={styles.removeContactButtonText}>★</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.addContactButton}
+                onPress={() => handleAddContact(item)}
+              >
+                <Text style={styles.addContactButtonText}>☆</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {isGroupMode && (
           <View style={styles.checkboxContainer}>
@@ -333,25 +416,45 @@ export default function NewConversationScreen() {
         />
       </View>
 
-      {filteredUsers.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateTitle}>
-            {searchTerm ? 'No users found' : 'No users available'}
+      {filteredContacts.length > 0 && (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>
+            Contacts ({filteredContacts.length})
           </Text>
-          <Text style={styles.emptyStateSubtitle}>
-            {searchTerm
-              ? 'Try a different search term'
-              : 'Other users need to sign up to start conversations'}
-          </Text>
+          <FlatList
+            data={filteredContacts}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderUser}
+            style={styles.contactsList}
+            scrollEnabled={false}
+          />
         </View>
-      ) : (
-        <FlatList
-          data={filteredUsers}
-          keyExtractor={(item) => item.uid}
-          renderItem={renderUser}
-          style={styles.usersList}
-        />
       )}
+
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionHeader}>
+          All Users ({filteredUsers.length})
+        </Text>
+        {filteredUsers.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>
+              {searchTerm ? 'No users found' : 'No users available'}
+            </Text>
+            <Text style={styles.emptyStateSubtitle}>
+              {searchTerm
+                ? 'Try a different search term'
+                : 'Other users need to sign up to start conversations'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderUser}
+            style={styles.usersList}
+          />
+        )}
+      </View>
     </View>
   )
 }
@@ -428,6 +531,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     textAlign: 'center'
+  },
+  sectionContainer: {
+    flex: 1
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F2F2F7'
+  },
+  contactsList: {
+    maxHeight: 200
   },
   usersList: {
     flex: 1
@@ -574,5 +691,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
+  },
+  contactBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FF9500',
+    borderWidth: 2,
+    borderColor: '#FFFFFF'
+  },
+  contactActionContainer: {
+    marginLeft: 12,
+    justifyContent: 'center'
+  },
+  addContactButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#8E8E93'
+  },
+  addContactButtonText: {
+    fontSize: 16,
+    color: '#8E8E93'
+  },
+  removeContactButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF9500',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  removeContactButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF'
   }
 })

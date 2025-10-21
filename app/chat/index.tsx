@@ -400,6 +400,10 @@ export default function ChatListScreen() {
     router.push('/profile')
   }
 
+  const handleGoToContacts = () => {
+    router.push('/contacts')
+  }
+
   const renderConversation = ({ item }: { item: Conversation }) => {
     const presenceStatus = getPresenceStatus(item)
     const isOnline = presenceStatus === 'Online'
@@ -506,6 +510,12 @@ export default function ChatListScreen() {
             onPress={handleEditStatus}
           >
             <Text style={styles.statusButtonText}>Status</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.contactsButton}
+            onPress={handleGoToContacts}
+          >
+            <Text style={styles.contactsButtonText}>Contacts</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.profileButton}
@@ -800,6 +810,17 @@ const styles = StyleSheet.create({
     borderRadius: 16
   },
   statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  contactsButton: {
+    backgroundColor: '#FF9500',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  contactsButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600'

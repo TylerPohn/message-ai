@@ -93,6 +93,14 @@ firebase init
 }
 ```
 
+### Contacts System
+
+- **ContactsService**: Firestore-based contact management with real-time synchronization
+- **Contact Data Model**: User-scoped contact storage with manual/conversation source tracking
+- **Contact UI**: Sectioned new conversation flow with star icons for add/remove actions
+- **Contact Security**: Firestore rules ensure users can only access their own contacts
+- **Contact Integration**: Seamless integration with presence, messaging, and user management systems
+
 ### Development Dependencies
 
 ```json
@@ -106,7 +114,7 @@ firebase init
 ### Firebase Services
 
 - **Authentication**: Email/password, magic links
-- **Firestore**: Messages, conversations, users
+- **Firestore**: Messages, conversations, users, contacts
 - **Realtime Database**: Presence, typing
 - **Cloud Functions**: AI endpoints, notifications
 - **Cloud Storage**: Media files

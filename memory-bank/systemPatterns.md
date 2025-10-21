@@ -74,7 +74,7 @@ Firestore ← Real-time Listeners ← UI Updates
 
 ### Real-time Messaging
 
-- **Firestore Collections**: conversations, messages, memberships
+- **Firestore Collections**: conversations, messages, memberships, contacts
 - **Realtime Database**: presence, typing indicators
 - **Optimistic Updates**: Immediate UI feedback with server sync
 - **Offline Support**: Local queue with retry logic and AsyncStorage persistence
@@ -102,6 +102,15 @@ Firestore ← Real-time Listeners ← UI Updates
 - **RAG Pipeline**: Rolling summaries every 100 messages
 - **Context Management**: 4k token limits with caching
 - **User Preferences**: Stored in user profiles
+
+### Contacts System Patterns
+
+- **Contact Management**: Manual add/remove contacts with real-time synchronization
+- **Contact Storage**: Firestore `contacts` collection with user-scoped access control
+- **Contact Display**: Sectioned layout in new conversation flow (Contacts first, then All Users)
+- **Contact Actions**: Star icons (☆/★) for add/remove with confirmation dialogs
+- **Contact Integration**: Seamless integration with presence, messaging, and user management systems
+- **Contact Security**: Users can only access their own contacts with proper Firestore rules
 
 ### Performance Optimizations
 
