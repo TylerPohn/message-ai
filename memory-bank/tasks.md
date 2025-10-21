@@ -47,12 +47,20 @@
 - [x] Simplified status indicators (spinner → gray ✓ → green ✓)
 - [x] Status only on most recent message
 
-### 5. Presence & Read Receipts
+### 5. Presence & Read Receipts ✅ COMPLETED
 
-- [ ] Use RTDB for presence (`presence/{userId}`)
-- [ ] Set `onDisconnect()` handlers
-- [ ] Track `memberships/{userId}.lastReadMessageId`
-- [ ] Display “Seen” indicator
+- [x] Use RTDB for presence (`presence/{userId}`) - Real-time presence tracking with heartbeat system
+- [x] Set `onDisconnect()` handlers - Automatic cleanup on logout and app state changes
+- [x] Track `memberships/{userId}.lastReadMessageId` - Read status tracking in Firestore
+- [x] Display "Seen" indicator - Enhanced read receipts with "Seen" text
+- [x] Heartbeat system - 30-second heartbeat to keep presence fresh
+- [x] Time-based offline detection - 30-second threshold for airplane mode handling
+- [x] UI refresh system - 5-second periodic refresh to update stale presence data
+- [x] Network-aware presence - Only sends heartbeats when online
+- [x] Real-time updates - Presence indicators in conversation list and chat headers
+- [x] Airplane mode detection - Users appear offline within 30 seconds of network loss
+- [x] Memory management - Proper cleanup of presence listeners
+- [x] Security rules - RTDB rules for presence data access control
 
 ### 6. Group Chats
 
@@ -66,25 +74,35 @@
 
 ### 7. Notifications
 
-- [ ] Integrate Expo push notifications
-- [ ] Register push tokens on profile
-- [ ] Implement Cloud Function to send FCM
-- [ ] Test foreground notifications
+- [x] Integrate Expo push notifications
+- [x] Register push tokens on profile
+- [x] Implement Cloud Function to send FCM
+- [x] Test foreground notifications
 
 ## PR2 — Enhanced Messaging & Media (Day 3–4)
 
-### 1. Image Messaging
+### 1. Image Messaging ✅ COMPLETED
 
-- [ ] Add `expo-image-picker`
-- [ ] Upload to Firebase Storage
-- [ ] Generate thumbnails via Cloud Function
-- [ ] Display images + retry on failure
+- [x] Add `expo-image-picker` - Camera & gallery access with permissions
+- [x] Upload to Firebase Storage - Secure storage with rules deployed
+- [x] Generate thumbnails - 200x200 thumbnails for chat list and bubbles
+- [x] Display images + retry on failure - Full-screen viewer with offline support
+- [x] Image compression - 1920x1080, 80% quality, ~1MB target
+- [x] Offline queueing - Local preview and upload on reconnection
+- [x] Image caching - LRU cache with 50MB limit
+- [x] Upload progress - Real-time progress indicators
+- [x] Chat integration - Image picker button and message rendering
+- [x] Conversation list - "📷 Photo" indicators for image messages
 
 ### 2. Typing Indicators
 
-- [ ] RTDB `typing/{conversationId}/{userId}`
-- [ ] Set true on keypress; clear after 5s idle
-- [ ] Show “User is typing…” in UI
+- [x] RTDB `typing/{conversationId}/{userId}`
+- [x] Set true on keypress; clear after 5s idle
+- [x] Show "User is typing…" in UI
+- [x] Enable typing indicators for group messages
+- [x] Remove clear typing reactor functionality (not working)
+- [x] Implement basic cleanup on component unmount
+- [x] Create simplified documentation
 
 ### 3. Profile Enhancements
 

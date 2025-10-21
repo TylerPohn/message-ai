@@ -12,6 +12,7 @@ import {
   addDoc,
   collection,
   doc,
+  DocumentSnapshot,
   getDoc,
   getDocs,
   limit,
@@ -19,6 +20,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  startAfter,
   updateDoc,
   where
 } from 'firebase/firestore'
@@ -267,24 +269,36 @@ export class MessagingService {
     })) as Conversation[]
   }
 
-  // Get messages for a conversation
+  // Get messages for a conversation with pagination support
   static async getConversationMessages(
     conversationId: string,
-    limitCount: number = 50
-  ): Promise<Message[]> {
-    const messagesQuery = query(
+    limitCount: number = 50,
+    startAfterDoc?: DocumentSnapshot
+  ): Promise<{ messages: Message[]; lastDoc: DocumentSnapshot | null }> {
+    let messagesQuery = query(
       collection(db, COLLECTIONS.MESSAGES),
       where('conversationId', '==', conversationId),
       orderBy('timestamp', 'desc'),
       limit(limitCount)
     )
 
+    if (startAfterDoc) {
+      messagesQuery = query(messagesQuery, startAfter(startAfterDoc))
+    }
+
     const messagesSnapshot = await getDocs(messagesQuery)
-    return messagesSnapshot.docs.map((doc) => ({
+    const messages = messagesSnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id, // Use Firestore document ID as authoritative ID
       timestamp: doc.data().timestamp?.toDate() || new Date()
     })) as Message[]
+
+    const lastDoc =
+      messagesSnapshot.docs.length > 0
+        ? messagesSnapshot.docs[messagesSnapshot.docs.length - 1]
+        : null
+
+    return { messages, lastDoc }
   }
 
   // Listen to conversations for a user (real-time)
@@ -357,18 +371,23 @@ export class MessagingService {
     }
   }
 
-  // Listen to messages for a conversation (real-time)
+  // Listen to messages for a conversation (real-time) with pagination support
   static listenToConversationMessages(
     conversationId: string,
     callback: (messages: Message[]) => void,
-    limitCount: number = 50
+    limitCount: number = 50,
+    startAfterDoc?: DocumentSnapshot
   ) {
-    const messagesQuery = query(
+    let messagesQuery = query(
       collection(db, COLLECTIONS.MESSAGES),
       where('conversationId', '==', conversationId),
       orderBy('timestamp', 'desc'),
       limit(limitCount)
     )
+
+    if (startAfterDoc) {
+      messagesQuery = query(messagesQuery, startAfter(startAfterDoc))
+    }
 
     return onSnapshot(messagesQuery, async (messagesSnapshot) => {
       const messages = messagesSnapshot.docs.map((doc) => ({

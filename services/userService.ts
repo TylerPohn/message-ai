@@ -1,6 +1,13 @@
 import { db } from '@/firebaseConfig'
 import { UserProfile } from '@/types/messaging'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where
+} from 'firebase/firestore'
 
 export class UserService {
   // Get all users except the current user
@@ -76,6 +83,41 @@ export class UserService {
       } as UserProfile
     } catch (error) {
       console.error('Error fetching user profile:', error)
+      throw error
+    }
+  }
+
+  // Update user status
+  static async updateUserStatus(userId: string, status: string): Promise<void> {
+    try {
+      // Validate status length
+      if (status.length > 140) {
+        throw new Error('Status message cannot exceed 140 characters')
+      }
+
+      // Find the user document by uid
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('uid', '==', userId)
+      )
+
+      const usersSnapshot = await getDocs(usersQuery)
+      if (usersSnapshot.empty) {
+        throw new Error('User not found')
+      }
+
+      const userDoc = usersSnapshot.docs[0]
+      const userRef = doc(db, 'users', userDoc.id)
+
+      // Update the status field
+      await updateDoc(userRef, {
+        status: status.trim(),
+        updatedAt: new Date()
+      })
+
+      console.log('User status updated successfully:', userId)
+    } catch (error) {
+      console.error('Error updating user status:', error)
       throw error
     }
   }

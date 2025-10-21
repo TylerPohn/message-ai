@@ -5,19 +5,20 @@ import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
+import { TypingService, TypingUser } from '@/services/typingService'
 import {
   Conversation,
   Message,
   MessageStatus,
   UserProfile
 } from '@/types/messaging'
+import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -54,7 +55,14 @@ export default function ChatScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const flatListRef = useRef<FlatList>(null)
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  )
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
+  const [lastMessageDoc, setLastMessageDoc] = useState<any>(null)
+  const flashListRef = useRef<any>(null)
 
   // Handle logout redirect
   useEffect(() => {
@@ -72,7 +80,7 @@ export default function ChatScreen() {
         setKeyboardHeight(event.endCoordinates.height)
         // Scroll to bottom when keyboard appears
         setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true })
+          flashListRef.current?.scrollToEnd({ animated: true })
         }, 100)
       }
     )
@@ -94,7 +102,7 @@ export default function ChatScreen() {
         // Track keyboard height for Android to prevent accumulation issues
         setKeyboardHeight(event.endCoordinates.height)
         setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true })
+          flashListRef.current?.scrollToEnd({ animated: true })
         }, 100)
       }
     )
@@ -153,46 +161,68 @@ export default function ChatScreen() {
       setNetworkState(state)
     })
 
-    // Set up real-time listener for messages
+    // Load initial messages with pagination
+    const loadInitialMessages = async () => {
+      try {
+        const result = await MessagingService.getConversationMessages(id, 50)
+        setMessages(result.messages.reverse()) // Reverse to show oldest first
+        setLastMessageDoc(result.lastDoc)
+        setHasMoreMessages(result.messages.length === 50)
+        setLoading(false)
+      } catch (error) {
+        console.error('Error loading initial messages:', error)
+        setLoading(false)
+      }
+    }
+
+    loadInitialMessages()
+
+    // Set up real-time listener for new messages (only the latest 50)
     const unsubscribe = MessagingService.listenToConversationMessages(
       id,
       async (updatedMessages) => {
-        // Deduplicate messages by ID to prevent duplicates
-        const uniqueMessages = updatedMessages.reduce((acc, message) => {
-          if (!acc.find((m) => m.id === message.id)) {
-            acc.push(message)
-          }
-          return acc
-        }, [] as Message[])
-
-        // Mark new messages as delivered (if not sent by current user)
-        const newMessages = uniqueMessages.filter(
-          (msg) => msg.senderId !== user.uid && msg.status === 'sent'
+        // Only process new messages (not paginated ones)
+        const newMessages = updatedMessages.filter(
+          (msg) => !messages.some((existing) => existing.id === msg.id)
         )
 
-        for (const message of newMessages) {
-          await MessagingService.markMessageAsDelivered(message.id)
-        }
+        if (newMessages.length > 0) {
+          // Mark new messages as delivered (if not sent by current user)
+          const messagesToMark = newMessages.filter(
+            (msg) => msg.senderId !== user.uid && msg.status === 'sent'
+          )
 
-        // Clean up optimistic messages that now have Firestore equivalents
-        setOptimisticMessages((prev) => {
-          return prev.filter((optimistic) => {
-            // Check if there's a Firestore message with similar content
-            const hasFirestoreEquivalent = uniqueMessages.some(
-              (firestore) =>
-                firestore.text === optimistic.text &&
-                firestore.senderId === optimistic.senderId &&
-                Math.abs(
-                  firestore.timestamp.getTime() - optimistic.timestamp.getTime()
-                ) < 5000
-            )
-            return !hasFirestoreEquivalent
+          for (const message of messagesToMark) {
+            await MessagingService.markMessageAsDelivered(message.id)
+          }
+
+          // Clean up optimistic messages that now have Firestore equivalents
+          setOptimisticMessages((prev) => {
+            return prev.filter((optimistic) => {
+              // Check if there's a Firestore message with similar content
+              const hasFirestoreEquivalent = newMessages.some(
+                (firestore) =>
+                  firestore.text === optimistic.text &&
+                  firestore.senderId === optimistic.senderId &&
+                  Math.abs(
+                    firestore.timestamp.getTime() -
+                      optimistic.timestamp.getTime()
+                  ) < 5000
+              )
+              return !hasFirestoreEquivalent
+            })
           })
-        })
 
-        setMessages(uniqueMessages.reverse()) // Reverse to show oldest first
-        setLoading(false)
-      }
+          // Add new messages to existing messages
+          setMessages((prev) => {
+            const combined = [...prev, ...newMessages]
+            return combined.sort(
+              (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+            )
+          })
+        }
+      },
+      50 // Only listen to latest 50 messages for real-time updates
     )
 
     // Load queued messages for this conversation
@@ -214,8 +244,13 @@ export default function ChatScreen() {
         keyboardListeners.keyboardDidShowListener?.remove()
         keyboardListeners.keyboardDidHideListener?.remove()
       }
+
+      // Clear typing timeout
+      if (typingTimeout) {
+        clearTimeout(typingTimeout)
+      }
     }
-  }, [user, id])
+  }, [user, id, typingTimeout, messages])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
@@ -304,6 +339,36 @@ export default function ChatScreen() {
     return () => {
       if (presenceUnsubscribe) {
         presenceUnsubscribe()
+      }
+    }
+  }, [user, id])
+
+  // Set up typing indicators for all conversations (direct and group)
+  useEffect(() => {
+    if (!user || !id) return
+
+    let typingUnsubscribe: (() => void) | null = null
+
+    const setupTypingIndicators = async () => {
+      try {
+        // Set up typing indicator listener for this conversation
+        typingUnsubscribe = TypingService.listenToTypingIndicators(
+          id,
+          (typingUsers) => {
+            console.log(`[ChatScreen] Typing users update:`, typingUsers)
+            setTypingUsers(typingUsers)
+          }
+        )
+      } catch (error) {
+        console.error('Error setting up typing indicators:', error)
+      }
+    }
+
+    setupTypingIndicators()
+
+    return () => {
+      if (typingUnsubscribe) {
+        typingUnsubscribe()
       }
     }
   }, [user, id])
@@ -435,12 +500,80 @@ export default function ChatScreen() {
     }
   }
 
+  // Handle text input changes with typing indicators
+  // Load more messages for pagination
+  const loadMoreMessages = async () => {
+    if (loadingMore || !hasMoreMessages || !lastMessageDoc) return
+
+    setLoadingMore(true)
+    try {
+      const result = await MessagingService.getConversationMessages(
+        id,
+        50,
+        lastMessageDoc
+      )
+
+      if (result.messages.length > 0) {
+        // Prepend older messages to the beginning of the list
+        setMessages((prev) => {
+          const combined = [...result.messages.reverse(), ...prev]
+          return combined.sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+          )
+        })
+        setLastMessageDoc(result.lastDoc)
+        setHasMoreMessages(result.messages.length === 50)
+      } else {
+        setHasMoreMessages(false)
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  const handleTextChange = async (text: string) => {
+    setMessageText(text)
+
+    if (!user || !id) return
+
+    // Clear existing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout)
+    }
+
+    if (text.length > 0) {
+      // User is typing
+      await TypingService.setUserTyping(id, user.uid, true)
+
+      // Set timeout to clear typing after 5 seconds of inactivity
+      const timeout = setTimeout(async () => {
+        await TypingService.setUserTyping(id, user.uid, false)
+        setTypingTimeout(null)
+      }, 5000) as unknown as NodeJS.Timeout
+
+      setTypingTimeout(timeout)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || !user || !userProfile || sending) return
 
     const text = messageText.trim()
     setMessageText('')
     setSending(true)
+
+    // Clear typing indicator when sending message
+    if (user && id) {
+      await TypingService.setUserTyping(id, user.uid, false)
+    }
+
+    // Clear typing timeout
+    if (typingTimeout) {
+      clearTimeout(typingTimeout)
+      setTypingTimeout(null)
+    }
 
     // Create optimistic message for immediate UI feedback
     const optimisticMessage: Message = {
@@ -459,7 +592,7 @@ export default function ChatScreen() {
 
     // Scroll to bottom to show new message
     setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true })
+      flashListRef.current?.scrollToEnd({ animated: true })
     }, 100)
 
     try {
@@ -714,6 +847,21 @@ export default function ChatScreen() {
     return 'Chat'
   }
 
+  const getOtherUserStatus = () => {
+    if (!conversation || conversation.type !== 'direct') return null
+
+    const otherParticipant = conversation.participants.find(
+      (id) => id !== user?.uid
+    )
+
+    if (otherParticipant) {
+      const userProfile = participantProfiles.get(otherParticipant)
+      return userProfile?.status || null
+    }
+
+    return null
+  }
+
   // Merge Firestore messages with queued and optimistic messages
   const getAllMessages = (): Message[] => {
     // Convert queued messages to Message format
@@ -812,6 +960,16 @@ export default function ChatScreen() {
                     )}`}
               </Text>
             )}
+            {getOtherUserStatus() && (
+              <Text style={styles.userStatus} numberOfLines={1}>
+                {getOtherUserStatus()}
+              </Text>
+            )}
+            {typingUsers.length > 0 && user && (
+              <Text style={styles.typingIndicator}>
+                {TypingService.formatTypingText(typingUsers, user.uid)}
+              </Text>
+            )}
             {!networkState.isOnline && (
               <Text
                 style={[
@@ -827,17 +985,29 @@ export default function ChatScreen() {
         </View>
 
         {/* Messages */}
-        <FlatList
-          ref={flatListRef}
+        <FlashList
+          ref={flashListRef}
           data={getAllMessages()}
           keyExtractor={(item) => item.id}
           renderItem={renderMessage}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
+          onEndReached={loadMoreMessages}
+          onEndReachedThreshold={0.5}
           onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
+            flashListRef.current?.scrollToEnd({ animated: true })
           }
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flashListRef.current?.scrollToEnd({ animated: true })}
+          ListHeaderComponent={
+            loadingMore ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size='small' color='#007AFF' />
+                <Text style={styles.loadingMoreText}>
+                  Loading more messages...
+                </Text>
+              </View>
+            ) : null
+          }
         />
 
         {/* Image Preview */}
@@ -906,7 +1076,7 @@ export default function ChatScreen() {
           <TextInput
             style={styles.textInput}
             value={messageText}
-            onChangeText={setMessageText}
+            onChangeText={handleTextChange}
             placeholder='Type a message...'
             multiline
             maxLength={1000}
@@ -1116,6 +1286,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '500'
   },
+  userStatus: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+    fontStyle: 'italic'
+  },
+  typingIndicator: {
+    fontSize: 12,
+    color: '#007AFF',
+    marginTop: 2,
+    fontWeight: '500',
+    fontStyle: 'italic'
+  },
   seenIndicator: {
     fontSize: 11,
     color: '#34C759',
@@ -1240,5 +1423,17 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#007AFF',
     borderRadius: 2
+  },
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16
+  },
+  loadingMoreText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#8E8E93'
   }
 })

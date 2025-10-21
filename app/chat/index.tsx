@@ -5,21 +5,22 @@ import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { UserCacheService } from '@/services/userCacheService'
 import { Conversation, UserProfile } from '@/types/messaging'
-import { TestDataUtils } from '@/utils/testData'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native'
 
 export default function ChatListScreen() {
-  const { user, userProfile, logout } = useAuth()
+  const { user, userProfile, logout, updateUserProfile } = useAuth()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +37,9 @@ export default function ChatListScreen() {
   const [presenceData, setPresenceData] = useState<Map<string, PresenceData>>(
     new Map()
   )
+  const [statusModalVisible, setStatusModalVisible] = useState(false)
+  const [statusText, setStatusText] = useState(userProfile?.status || '')
+  const [statusLoading, setStatusLoading] = useState(false)
 
   // Handle logout redirect
   useEffect(() => {
@@ -335,43 +339,6 @@ export default function ChatListScreen() {
     router.push(`/chat/${conversation.id}`)
   }
 
-  const handleCreateTestData = async () => {
-    if (!user || !userProfile) {
-      Alert.alert('Error', 'User not authenticated')
-      return
-    }
-
-    try {
-      // Create a test conversation with a dummy user
-      const testUserId = 'test-user-' + Date.now()
-      const testUserName = 'Test User'
-
-      console.log('Creating test conversation...')
-      const conversationId = await TestDataUtils.createTestConversation(
-        user.uid,
-        testUserId,
-        userProfile.displayName,
-        testUserName
-      )
-
-      console.log('Test conversation created:', conversationId)
-      Alert.alert(
-        'Test Data Created',
-        `Test conversation created successfully!`,
-        [{ text: 'OK' }]
-      )
-    } catch (error) {
-      console.error('Error creating test data:', error)
-      Alert.alert(
-        'Error',
-        `Failed to create test data: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-        [{ text: 'OK' }]
-      )
-    }
-  }
-
   const handleNewConversation = () => {
     router.push('/chat/new')
   }
@@ -397,6 +364,36 @@ export default function ChatListScreen() {
         }
       ]
     )
+  }
+
+  const handleEditStatus = () => {
+    setStatusText(userProfile?.status || '')
+    setStatusModalVisible(true)
+  }
+
+  const handleSaveStatus = async () => {
+    if (!user) return
+
+    setStatusLoading(true)
+    try {
+      await updateUserProfile({ status: statusText.trim() })
+      setStatusModalVisible(false)
+      Alert.alert('Success', 'Status updated successfully!')
+    } catch (error) {
+      console.error('Error updating status:', error)
+      Alert.alert('Error', 'Failed to update status. Please try again.')
+    } finally {
+      setStatusLoading(false)
+    }
+  }
+
+  const handleCancelStatus = () => {
+    setStatusText(userProfile?.status || '')
+    setStatusModalVisible(false)
+  }
+
+  const handleClearStatus = () => {
+    setStatusText('')
   }
 
   const renderConversation = ({ item }: { item: Conversation }) => {
@@ -447,6 +444,22 @@ export default function ChatListScreen() {
           {presenceStatus && (
             <Text style={styles.presenceStatus}>{presenceStatus}</Text>
           )}
+
+          {/* Show status message for direct messages */}
+          {item.type === 'direct' &&
+            (() => {
+              const otherParticipant = item.participants.find(
+                (id) => id !== user?.uid
+              )
+              const otherUserProfile = otherParticipant
+                ? userProfiles.get(otherParticipant)
+                : null
+              return otherUserProfile?.status ? (
+                <Text style={styles.statusMessage} numberOfLines={1}>
+                  {otherUserProfile.status}
+                </Text>
+              ) : null
+            })()}
         </View>
       </TouchableOpacity>
     )
@@ -485,10 +498,10 @@ export default function ChatListScreen() {
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            style={styles.testDataButton}
-            onPress={handleCreateTestData}
+            style={styles.statusButton}
+            onPress={handleEditStatus}
           >
-            <Text style={styles.testDataButtonText}>Test</Text>
+            <Text style={styles.statusButtonText}>Status</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
@@ -506,8 +519,7 @@ export default function ChatListScreen() {
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateTitle}>No conversations yet</Text>
           <Text style={styles.emptyStateSubtitle}>
-            Tap the &quot;Test&quot; button to create a sample conversation, or
-            use the &quot;+&quot; button for new conversations
+            Use the &quot;+&quot; button to start new conversations
           </Text>
         </View>
       ) : (
@@ -518,6 +530,85 @@ export default function ChatListScreen() {
           style={styles.conversationsList}
         />
       )}
+
+      {/* Status Edit Modal */}
+      <Modal
+        visible={statusModalVisible}
+        animationType='slide'
+        transparent={true}
+        onRequestClose={handleCancelStatus}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Status</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={handleCancelStatus}
+              >
+                <Text style={styles.modalCloseButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>
+                Let others know what you&apos;re up to
+              </Text>
+
+              <View style={styles.statusInputContainer}>
+                <TextInput
+                  style={styles.statusInput}
+                  value={statusText}
+                  onChangeText={setStatusText}
+                  placeholder="What's on your mind?"
+                  placeholderTextColor='#8E8E93'
+                  multiline
+                  maxLength={140}
+                  textAlignVertical='top'
+                />
+                <View style={styles.statusFooter}>
+                  <Text style={styles.characterCount}>
+                    {statusText.length}/140
+                  </Text>
+                  {statusText.length > 0 && (
+                    <TouchableOpacity
+                      style={styles.clearButton}
+                      onPress={handleClearStatus}
+                    >
+                      <Text style={styles.clearButtonText}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  statusLoading && styles.saveButtonDisabled
+                ]}
+                onPress={handleSaveStatus}
+                disabled={statusLoading}
+              >
+                {statusLoading ? (
+                  <ActivityIndicator size='small' color='#FFFFFF' />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelStatus}
+                disabled={statusLoading}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -543,17 +634,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
-  },
-  testDataButton: {
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
-  },
-  testDataButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
   },
   logoutButton: {
     backgroundColor: '#FF3B30',
@@ -695,6 +775,135 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#34C759',
     marginTop: 2,
+    fontWeight: '500'
+  },
+  statusMessage: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+    fontStyle: 'italic'
+  },
+  statusButton: {
+    backgroundColor: '#34C759',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%'
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E7'
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000'
+  },
+  modalCloseButton: {
+    padding: 4
+  },
+  modalCloseButtonText: {
+    fontSize: 18,
+    color: '#8E8E93'
+  },
+  modalBody: {
+    padding: 20
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 16
+  },
+  statusInputContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E5E7',
+    borderRadius: 12,
+    backgroundColor: '#F8F9FA'
+  },
+  statusInput: {
+    padding: 16,
+    fontSize: 16,
+    color: '#000000',
+    minHeight: 100,
+    maxHeight: 120
+  },
+  statusFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E7'
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#8E8E93'
+  },
+  clearButton: {
+    padding: 4
+  },
+  clearButtonText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    fontWeight: '500'
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E7'
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#8E8E93'
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+  cancelButtonText: {
+    color: '#8E8E93',
+    fontSize: 16,
     fontWeight: '500'
   }
 })

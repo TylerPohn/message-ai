@@ -87,4 +87,10 @@ export class UserCacheService {
     this.userCache.set(userProfile.uid, userProfile)
     this.cacheExpiry.set(userProfile.uid, Date.now() + this.CACHE_DURATION)
   }
+
+  // Invalidate cache for status updates to force refresh
+  static invalidateUserStatus(userId: string): void {
+    this.clearUserCache(userId)
+    console.log('User cache invalidated for status update:', userId)
+  }
 }
