@@ -396,6 +396,10 @@ export default function ChatListScreen() {
     setStatusText('')
   }
 
+  const handleGoToProfile = () => {
+    router.push('/profile')
+  }
+
   const renderConversation = ({ item }: { item: Conversation }) => {
     const presenceStatus = getPresenceStatus(item)
     const isOnline = presenceStatus === 'Online'
@@ -502,6 +506,12 @@ export default function ChatListScreen() {
             onPress={handleEditStatus}
           >
             <Text style={styles.statusButtonText}>Status</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={handleGoToProfile}
+          >
+            <Text style={styles.profileButtonText}>Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
@@ -790,6 +800,17 @@ const styles = StyleSheet.create({
     borderRadius: 16
   },
   statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  profileButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  profileButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600'
