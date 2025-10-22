@@ -12,7 +12,7 @@ import { Conversation, Message, UserProfile } from '@/types/messaging'
 import { Ionicons } from '@expo/vector-icons'
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -21,7 +21,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -62,14 +61,9 @@ export default function ChatScreen() {
   const [showOriginalText, setShowOriginalText] = useState<
     Map<string, boolean>
   >(new Map())
-  const [translationQueue, setTranslationQueue] = useState<Message[]>([])
-  const [isTranslatingBulk, setIsTranslatingBulk] = useState(false)
-  const [translationProgress, setTranslationProgress] = useState({
-    current: 0,
-    total: 0
-  })
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
+  const textInputRef = useRef<TextInput>(null)
 
   // Handle logout redirect
   useEffect(() => {
@@ -78,6 +72,57 @@ export default function ChatScreen() {
       router.replace('/auth/login')
     }
   }, [user, authLoading, router])
+
+  // Handle auto-translation of messages
+  const handleAutoTranslation = useCallback(
+    async (message: Message) => {
+      if (!userProfile?.preferredLanguage) {
+        return
+      }
+
+      // Add to translating set to prevent duplicate attempts
+      translatingMessages.current.add(message.id)
+
+      try {
+        // Set translating flag
+        await MessagingService.setMessageTranslating(message.id, true)
+
+        // Translate directly - let the service handle language detection
+        const translationResult = await TranslateService.translateMessage(
+          message.text,
+          userProfile.preferredLanguage
+        )
+
+        // Extract the translated text properly
+        const translatedTextString =
+          translationResult.message?.content?.translated_text ||
+          translationResult.translatedText ||
+          translationResult.message
+
+        // Update message with translation
+        await MessagingService.updateMessageTranslation(
+          message.id,
+          translatedTextString,
+          'auto-detected', // We don't know the source language anymore
+          userProfile.preferredLanguage
+        )
+
+        // Remove from translating set when complete
+        translatingMessages.current.delete(message.id)
+      } catch {
+        // Clear translating flag on error
+        try {
+          await MessagingService.setMessageTranslating(message.id, false)
+        } catch {
+          // Silent fail on error clearing
+        }
+
+        // Remove from translating set on error
+        translatingMessages.current.delete(message.id)
+      }
+    },
+    [userProfile?.preferredLanguage]
+  )
 
   // Platform-specific keyboard handling functions
   const setupIOSKeyboardHandling = () => {
@@ -239,6 +284,9 @@ export default function ChatScreen() {
     }
     loadQueuedMessages()
 
+    // Copy ref to variable for use in cleanup function
+    const translatingSet = translatingMessages.current
+
     return () => {
       unsubscribe()
       unsubscribeNetwork()
@@ -260,15 +308,10 @@ export default function ChatScreen() {
         clearTimeout(typingTimeout)
       }
 
-      // Cancel pending translations when leaving chat
-      setIsTranslatingBulk(false)
-      setTranslationQueue([])
-      setTranslationProgress({ current: 0, total: 0 })
-
-      // Clear translation tracking sets
-      translatingMessages.current.clear()
+      // Clear translation tracking set
+      translatingSet.clear()
     }
-  }, [user, id])
+  }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation, typingTimeout])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
@@ -605,6 +648,10 @@ export default function ChatScreen() {
       setMessageText(text)
     } finally {
       setSending(false)
+      // Keep keyboard open by refocusing the input after sending
+      setTimeout(() => {
+        textInputRef.current?.focus()
+      }, 0)
     }
   }
 
@@ -613,99 +660,6 @@ export default function ChatScreen() {
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
-
-  // Handle auto-translation of messages
-  const handleAutoTranslation = async (message: Message) => {
-    if (!userProfile?.preferredLanguage) {
-      return
-    }
-
-    // Add to translating set to prevent duplicate attempts
-    translatingMessages.current.add(message.id)
-
-    try {
-      // Set translating flag
-      await MessagingService.setMessageTranslating(message.id, true)
-
-      // Translate directly - let the service handle language detection
-      const translationResult = await TranslateService.translateMessage(
-        message.text,
-        userProfile.preferredLanguage
-      )
-
-      // Extract the translated text properly
-      const translatedTextString =
-        translationResult.message?.content?.translated_text ||
-        translationResult.translatedText ||
-        translationResult.message
-
-      // Update message with translation
-      await MessagingService.updateMessageTranslation(
-        message.id,
-        translatedTextString,
-        'auto-detected', // We don't know the source language anymore
-        userProfile.preferredLanguage
-      )
-
-      // Remove from translating set when complete
-      translatingMessages.current.delete(message.id)
-    } catch (error) {
-      // Clear translating flag on error
-      try {
-        await MessagingService.setMessageTranslating(message.id, false)
-      } catch (clearError) {
-        // Silent fail on error clearing
-      }
-
-      // Remove from translating set on error
-      translatingMessages.current.delete(message.id)
-    }
-  }
-
-  // Process translation queue with rate limiting
-  const processTranslationQueue = async () => {
-    if (isTranslatingBulk || translationQueue.length === 0) return
-
-    setIsTranslatingBulk(true)
-    setTranslationProgress({ current: 0, total: translationQueue.length })
-
-    const queue = [...translationQueue]
-    setTranslationQueue([])
-
-    for (let i = 0; i < queue.length; i++) {
-      const message = queue[i]
-      setTranslationProgress({ current: i + 1, total: queue.length })
-
-      try {
-        await handleAutoTranslation(message)
-      } catch (error) {
-        console.error('Error translating message in queue:', error)
-      }
-
-      // Rate limiting: 500ms delay between translations
-      if (i < queue.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-      }
-    }
-
-    setIsTranslatingBulk(false)
-    setTranslationProgress({ current: 0, total: 0 })
-  }
-
-  // Add messages to translation queue (for bulk translation)
-  const addToTranslationQueue = (messages: Message[]) => {
-    const untranslatedMessages = messages.filter(
-      (msg) =>
-        msg.type === 'text' &&
-        msg.senderId !== user?.uid &&
-        !msg.translatedText &&
-        !msg.isTranslating
-    )
-
-    if (untranslatedMessages.length > 0) {
-      setTranslationQueue((prev) => [...prev, ...untranslatedMessages])
-    }
   }
 
   // Toggle between original and translated text
@@ -1040,7 +994,7 @@ export default function ChatScreen() {
   const typingText = user ? TypingService.formatTypingText(typingUsers, user.uid) : ''
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -1089,27 +1043,6 @@ export default function ChatScreen() {
           </View>
           <View style={styles.headerSpacer} />
         </View>
-
-        {/* Translation Progress Indicator */}
-        {isTranslatingBulk && (
-          <View style={styles.translationProgressBanner}>
-            <ActivityIndicator size='small' color='#00A884' />
-            <Text style={styles.translationProgressText}>
-              Translating messages... ({translationProgress.current}/
-              {translationProgress.total})
-            </Text>
-            <TouchableOpacity
-              style={styles.translationProgressClose}
-              onPress={() => {
-                setIsTranslatingBulk(false)
-                setTranslationQueue([])
-                setTranslationProgress({ current: 0, total: 0 })
-              }}
-            >
-              <Text style={styles.translationProgressCloseText}>×</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Messages */}
         <FlashList
@@ -1201,6 +1134,7 @@ export default function ChatScreen() {
             <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
           <TextInput
+            ref={textInputRef}
             style={styles.textInput}
             value={messageText}
             onChangeText={handleTextChange}
@@ -1237,7 +1171,7 @@ export default function ChatScreen() {
           setSelectedImage(null)
         }}
       />
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -1581,27 +1515,4 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontStyle: 'italic'
   },
-  translationProgressBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 168, 132, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2A3942'
-  },
-  translationProgressText: {
-    fontSize: 14,
-    color: '#00A884',
-    marginLeft: 8,
-    flex: 1
-  },
-  translationProgressClose: {
-    padding: 4
-  },
-  translationProgressCloseText: {
-    fontSize: 18,
-    color: '#00A884',
-    fontWeight: 'bold'
-  }
 })
