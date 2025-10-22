@@ -70,7 +70,6 @@ export default function ChatScreen() {
   })
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
-  const processedMessages = useRef<Set<string>>(new Set())
 
   // Handle logout redirect
   useEffect(() => {
@@ -197,23 +196,14 @@ export default function ChatScreen() {
 
     loadInitialMessages()
 
-    // Set up real-time listener for new messages (only the latest 50)
+    // Set up real-time listener for all messages (only the latest 50)
     const unsubscribe = MessagingService.listenToConversationMessages(
       id,
       async (updatedMessages) => {
-        // Only process new messages (not paginated ones)
-        const newMessages = updatedMessages.filter(
-          (msg) =>
-            !messages.some((existing) => existing.id === msg.id) &&
-            !processedMessages.current.has(msg.id)
-        )
-
-        if (newMessages.length > 0) {
-          // Mark messages as processed to prevent duplicate processing
-          newMessages.forEach((msg) => processedMessages.current.add(msg.id))
-
-          // Only mark OTHER users' messages as delivered (receiver logic)
-          const messagesToMark = newMessages.filter(
+        // Process ALL messages from Firestore to handle status updates
+        if (updatedMessages.length > 0) {
+          // Mark OTHER users' messages as delivered (receiver logic)
+          const messagesToMark = updatedMessages.filter(
             (msg) => msg.senderId !== user.uid && msg.status === 'sent'
           )
 
@@ -221,8 +211,8 @@ export default function ChatScreen() {
             await MessagingService.markMessageAsDelivered(message.id)
           }
 
-          // Current user's message status is already correctly set by messagingService.ts
-          // No need for additional status updates here
+          // Update messages state with latest Firestore data
+          setMessages(updatedMessages.reverse()) // Reverse to show oldest first
 
           // Auto-translate new messages if user has auto-translate enabled
           console.log('🔄 [ChatScreen] Checking auto-translation conditions...')
@@ -234,7 +224,10 @@ export default function ChatScreen() {
             '🔄 [ChatScreen] userProfile?.preferredLanguage:',
             userProfile?.preferredLanguage
           )
-          console.log('🔄 [ChatScreen] newMessages count:', newMessages.length)
+          console.log(
+            '🔄 [ChatScreen] updatedMessages count:',
+            updatedMessages.length
+          )
 
           if (userProfile?.autoTranslate && userProfile?.preferredLanguage) {
             console.log(
@@ -242,7 +235,7 @@ export default function ChatScreen() {
             )
 
             // Filter and get only the most recent message that needs translation
-            const messagesToTranslate = newMessages
+            const messagesToTranslate = updatedMessages
               .filter(
                 (msg) =>
                   msg.type === 'text' &&
@@ -286,29 +279,6 @@ export default function ChatScreen() {
               }
             )
           }
-
-          // No optimistic messages to clean up
-
-          // Add new messages to existing messages and update existing message statuses
-          setMessages((prev) => {
-            // Update existing messages with new statuses
-            const updatedMessages = prev.map((existingMsg) => {
-              const updatedMsg = newMessages.find(
-                (newMsg) => newMsg.id === existingMsg.id
-              )
-              return updatedMsg || existingMsg
-            })
-
-            // Add truly new messages
-            const trulyNewMessages = newMessages.filter(
-              (newMsg) => !prev.some((existing) => existing.id === newMsg.id)
-            )
-
-            const combined = [...updatedMessages, ...trulyNewMessages]
-            return combined.sort(
-              (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-            )
-          })
         }
       },
       50 // Only listen to latest 50 messages for real-time updates
@@ -354,7 +324,6 @@ export default function ChatScreen() {
 
       // Clear translation tracking sets
       translatingMessages.current.clear()
-      processedMessages.current.clear()
     }
   }, [user, id, typingTimeout])
 
