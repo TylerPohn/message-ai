@@ -13,6 +13,16 @@
           ".write": "$userId === auth.uid"
         }
       }
+    },
+    "notifications": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": false,
+        "$notificationId": {
+          ".read": "$userId === auth.uid",
+          ".write": false
+        }
+      }
     }
   }
 }

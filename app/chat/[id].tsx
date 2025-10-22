@@ -3,20 +3,16 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ImageService } from '@/services/imageService'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
+import { notificationService } from '@/services/notificationService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { TranslateService } from '@/services/translateService'
 import { TypingService, TypingUser } from '@/services/typingService'
-import {
-  Conversation,
-  Message,
-  MessageStatus,
-  UserProfile
-} from '@/types/messaging'
+import { Conversation, Message, UserProfile } from '@/types/messaging'
 import { Ionicons } from '@expo/vector-icons'
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -46,7 +42,6 @@ export default function ChatScreen() {
     NetworkService.getCurrentState()
   )
   const [queuedMessages, setQueuedMessages] = useState<any[]>([])
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([])
   const [keyboardHeight, setKeyboardHeight] = useState(0)
   const [presenceData, setPresenceData] = useState<PresenceData | null>(null)
   const [otherUserMembership, setOtherUserMembership] = useState<any>(null)
@@ -74,6 +69,8 @@ export default function ChatScreen() {
     total: 0
   })
   const flashListRef = useRef<any>(null)
+  const translatingMessages = useRef<Set<string>>(new Set())
+  const processedMessages = useRef<Set<string>>(new Set())
 
   // Handle logout redirect
   useEffect(() => {
@@ -150,6 +147,9 @@ export default function ChatScreen() {
         if (conversationData) {
           setConversation(conversationData)
 
+          // Set current conversation in notification service to prevent notifications
+          notificationService.setCurrentConversation(id)
+
           // Load participant profiles for all conversations
           const participants =
             await MessagingService.getConversationParticipants(id)
@@ -203,11 +203,16 @@ export default function ChatScreen() {
       async (updatedMessages) => {
         // Only process new messages (not paginated ones)
         const newMessages = updatedMessages.filter(
-          (msg) => !messages.some((existing) => existing.id === msg.id)
+          (msg) =>
+            !messages.some((existing) => existing.id === msg.id) &&
+            !processedMessages.current.has(msg.id)
         )
 
         if (newMessages.length > 0) {
-          // Mark new messages as delivered (if not sent by current user)
+          // Mark messages as processed to prevent duplicate processing
+          newMessages.forEach((msg) => processedMessages.current.add(msg.id))
+
+          // Only mark OTHER users' messages as delivered (receiver logic)
           const messagesToMark = newMessages.filter(
             (msg) => msg.senderId !== user.uid && msg.status === 'sent'
           )
@@ -215,6 +220,9 @@ export default function ChatScreen() {
           for (const message of messagesToMark) {
             await MessagingService.markMessageAsDelivered(message.id)
           }
+
+          // Current user's message status is already correctly set by messagingService.ts
+          // No need for additional status updates here
 
           // Auto-translate new messages if user has auto-translate enabled
           console.log('🔄 [ChatScreen] Checking auto-translation conditions...')
@@ -240,7 +248,8 @@ export default function ChatScreen() {
                   msg.type === 'text' &&
                   msg.senderId !== user.uid &&
                   !msg.translatedText &&
-                  !msg.isTranslating
+                  !msg.isTranslating &&
+                  !translatingMessages.current.has(msg.id)
               )
               .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Most recent first
               .slice(0, 1) // Take only the most recent
@@ -278,26 +287,24 @@ export default function ChatScreen() {
             )
           }
 
-          // Clean up optimistic messages that now have Firestore equivalents
-          setOptimisticMessages((prev) => {
-            return prev.filter((optimistic) => {
-              // Check if there's a Firestore message with similar content
-              const hasFirestoreEquivalent = newMessages.some(
-                (firestore) =>
-                  firestore.text === optimistic.text &&
-                  firestore.senderId === optimistic.senderId &&
-                  Math.abs(
-                    firestore.timestamp.getTime() -
-                      optimistic.timestamp.getTime()
-                  ) < 5000
-              )
-              return !hasFirestoreEquivalent
-            })
-          })
+          // No optimistic messages to clean up
 
-          // Add new messages to existing messages
+          // Add new messages to existing messages and update existing message statuses
           setMessages((prev) => {
-            const combined = [...prev, ...newMessages]
+            // Update existing messages with new statuses
+            const updatedMessages = prev.map((existingMsg) => {
+              const updatedMsg = newMessages.find(
+                (newMsg) => newMsg.id === existingMsg.id
+              )
+              return updatedMsg || existingMsg
+            })
+
+            // Add truly new messages
+            const trulyNewMessages = newMessages.filter(
+              (newMsg) => !prev.some((existing) => existing.id === newMsg.id)
+            )
+
+            const combined = [...updatedMessages, ...trulyNewMessages]
             return combined.sort(
               (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
             )
@@ -310,6 +317,11 @@ export default function ChatScreen() {
     // Load queued messages for this conversation
     const loadQueuedMessages = async () => {
       const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
+      console.log(
+        '🔄 Initial load of queued messages:',
+        queued.length,
+        queued.map((q) => ({ id: q.id, text: q.text }))
+      )
       setQueuedMessages(queued)
     }
     loadQueuedMessages()
@@ -317,6 +329,9 @@ export default function ChatScreen() {
     return () => {
       unsubscribe()
       unsubscribeNetwork()
+
+      // Clear current conversation in notification service
+      notificationService.setCurrentConversation(null)
 
       // Clean up platform-specific keyboard listeners
       if (Platform.OS === 'ios') {
@@ -336,6 +351,10 @@ export default function ChatScreen() {
       setIsTranslatingBulk(false)
       setTranslationQueue([])
       setTranslationProgress({ current: 0, total: 0 })
+
+      // Clear translation tracking sets
+      translatingMessages.current.clear()
+      processedMessages.current.clear()
     }
   }, [user, id, typingTimeout])
 
@@ -343,6 +362,12 @@ export default function ChatScreen() {
   useEffect(() => {
     const refreshQueuedMessages = () => {
       const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
+      console.log(
+        '🔄 Network state changed, refreshing queued messages:',
+        queued.length,
+        'isOnline:',
+        networkState.isOnline
+      )
       setQueuedMessages(queued)
     }
     refreshQueuedMessages()
@@ -662,20 +687,7 @@ export default function ChatScreen() {
       setTypingTimeout(null)
     }
 
-    // Create optimistic message for immediate UI feedback
-    const optimisticMessage: Message = {
-      id: `optimistic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      conversationId: id,
-      senderId: user.uid,
-      senderName: userProfile.displayName,
-      text,
-      timestamp: new Date(),
-      type: 'text',
-      status: 'sending'
-    }
-
-    // Add optimistic message immediately
-    setOptimisticMessages((prev) => [...prev, optimisticMessage])
+    // Message will appear when Firestore write completes
 
     // Scroll to bottom to show new message
     setTimeout(() => {
@@ -693,26 +705,28 @@ export default function ChatScreen() {
 
       // Check if message was queued (offline)
       if (messageId.startsWith('queue_')) {
-        // Update optimistic message to show as failed/queued
-        setOptimisticMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === optimisticMessage.id
-              ? { ...msg, status: 'failed' as MessageStatus }
-              : msg
-          )
+        console.log('🔄 Message was queued, messageId:', messageId)
+
+        // Message is now queued for offline processing
+
+        // Refresh queued messages to show the newly queued message
+        const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
+        console.log(
+          '🔄 Queued messages after refresh:',
+          queued.length,
+          queued.map((q) => ({ id: q.id, text: q.text }))
         )
+        setQueuedMessages(queued)
       } else {
-        // Successfully sent, remove optimistic message
-        setOptimisticMessages((prev) =>
-          prev.filter((msg) => msg.id !== optimisticMessage.id)
-        )
+        console.log('🔄 Message sent successfully, messageId:', messageId)
+        // Message successfully sent to Firestore
+
+        // Message status is already correctly set by messagingService.ts
+        // No need for artificial delays - status updates happen in real-time
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      // Remove optimistic message on error
-      setOptimisticMessages((prev) =>
-        prev.filter((msg) => msg.id !== optimisticMessage.id)
-      )
+      // Error occurred while sending message
       // Restore message text on error
       setMessageText(text)
     } finally {
@@ -749,6 +763,9 @@ export default function ChatScreen() {
       return
     }
 
+    // Add to translating set to prevent duplicate attempts
+    translatingMessages.current.add(message.id)
+
     try {
       console.log(
         '🔄 [handleAutoTranslation] Marking message as translating...'
@@ -756,61 +773,44 @@ export default function ChatScreen() {
       // Set translating flag
       await MessagingService.setMessageTranslating(message.id, true)
 
-      console.log('🔄 [handleAutoTranslation] Detecting language...')
-      // Detect language first
-      const detectedLanguage = await TranslateService.detectLanguage(
-        message.text
+      console.log('🔄 [handleAutoTranslation] Translating message...')
+      // Translate directly - let the service handle language detection
+      const translationResult = await TranslateService.translateMessage(
+        message.text,
+        userProfile.preferredLanguage
       )
       console.log(
-        '✅ [handleAutoTranslation] Detected language:',
-        detectedLanguage
+        '✅ [handleAutoTranslation] Translation result:',
+        translationResult
       )
 
-      // Only translate if the detected language is different from user's preferred language
-      if (detectedLanguage !== userProfile.preferredLanguage) {
-        console.log(
-          '🔄 [handleAutoTranslation] Languages differ, translating...'
-        )
-        const translationResult = await TranslateService.translateMessage(
-          message.text,
-          userProfile.preferredLanguage
-        )
-        console.log(
-          '✅ [handleAutoTranslation] Translation result:',
-          translationResult
-        )
+      console.log(
+        '🔄 [handleAutoTranslation] Updating message with translation...'
+      )
+      // Extract the translated text properly
+      const translatedTextString =
+        translationResult.message?.content?.translated_text ||
+        translationResult.translatedText ||
+        translationResult.message
 
-        console.log(
-          '🔄 [handleAutoTranslation] Updating message with translation...'
-        )
-        // Extract the translated text properly
-        const translatedTextString =
-          translationResult.message?.content?.translated_text ||
-          translationResult.translatedText ||
-          translationResult.message
+      console.log(
+        '🔄 [handleAutoTranslation] Extracted translated text:',
+        translatedTextString
+      )
 
-        console.log(
-          '🔄 [handleAutoTranslation] Extracted translated text:',
-          translatedTextString
-        )
+      // Update message with translation
+      await MessagingService.updateMessageTranslation(
+        message.id,
+        translatedTextString,
+        'auto-detected', // We don't know the source language anymore
+        userProfile.preferredLanguage
+      )
+      console.log(
+        '✅ [handleAutoTranslation] Translation completed successfully'
+      )
 
-        // Update message with translation
-        await MessagingService.updateMessageTranslation(
-          message.id,
-          translatedTextString, // Now this will be a string, not an object
-          detectedLanguage,
-          userProfile.preferredLanguage
-        )
-        console.log(
-          '✅ [handleAutoTranslation] Translation completed successfully'
-        )
-      } else {
-        console.log(
-          '✅ [handleAutoTranslation] Same language detected, clearing translating flag'
-        )
-        // If same language, just clear the translating flag
-        await MessagingService.setMessageTranslating(message.id, false)
-      }
+      // Remove from translating set when complete
+      translatingMessages.current.delete(message.id)
     } catch (error) {
       console.error(
         '❌ [handleAutoTranslation] Error auto-translating message:',
@@ -826,6 +826,9 @@ export default function ChatScreen() {
       } catch (clearError) {
         console.error('Error clearing translating flag:', clearError)
       }
+
+      // Remove from translating set on error
+      translatingMessages.current.delete(message.id)
     }
   }
 
@@ -887,7 +890,6 @@ export default function ChatScreen() {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
     const isQueued = queuedMessages.some((q) => q.id === item.id)
-    const isOptimistic = item.id.startsWith('optimistic_')
 
     // For group messages, determine if we should show sender info
     const allMessages = getAllMessages()
@@ -906,21 +908,9 @@ export default function ChatScreen() {
       userMessages.length > 0 &&
       userMessages[userMessages.length - 1].id === item.id
 
-    const getStatusIcon = (
-      status: string,
-      isQueued: boolean = false,
-      isOptimistic: boolean = false
-    ) => {
+    const getStatusIcon = (status: string, isQueued: boolean = false) => {
       if (isQueued) {
         return '⏳' // Spinner for queued messages
-      }
-
-      if (isOptimistic && status === 'failed') {
-        return '✕' // Red X for failed optimistic messages
-      }
-
-      if (isOptimistic) {
-        return '⏳' // Spinner for optimistic messages
       }
 
       switch (status) {
@@ -938,21 +928,9 @@ export default function ChatScreen() {
       }
     }
 
-    const getStatusColor = (
-      status: string,
-      isQueued: boolean = false,
-      isOptimistic: boolean = false
-    ) => {
+    const getStatusColor = (status: string, isQueued: boolean = false) => {
       if (isQueued) {
         return '#FF9500' // Orange for queued messages
-      }
-
-      if (isOptimistic && status === 'failed') {
-        return '#FF3B30' // Red for failed optimistic messages
-      }
-
-      if (isOptimistic) {
-        return '#FF9500' // Orange for optimistic messages
       }
 
       switch (status) {
@@ -1039,14 +1017,14 @@ export default function ChatScreen() {
                     item.translatedText &&
                     !isOwnMessage &&
                     userProfile?.autoTranslate &&
-                    !showOriginalText.get(item.id)
+                    showOriginalText.get(item.id) !== true
                   ) {
                     // Handle both old format (string) and new format (object)
                     const translatedText =
                       typeof item.translatedText === 'string'
                         ? item.translatedText
-                        : item.translatedText?.content?.translated_text ||
-                          item.text
+                        : (item.translatedText as any)?.content
+                            ?.translated_text || item.text
                     return translatedText
                   }
                   return item.text
@@ -1057,9 +1035,9 @@ export default function ChatScreen() {
               {item.translatedText && !isOwnMessage && (
                 <View style={styles.translationIndicator}>
                   <Text style={styles.translationText}>
-                    {showOriginalText.get(item.id)
-                      ? `Translated from ${item.detectedLanguage?.toUpperCase()}`
-                      : 'Tap to show original'}
+                    {showOriginalText.get(item.id) === true
+                      ? 'Tap to show translation'
+                      : `Translated from ${item.detectedLanguage?.toUpperCase()}`}
                   </Text>
                 </View>
               )}
@@ -1088,10 +1066,10 @@ export default function ChatScreen() {
               <Text
                 style={[
                   styles.statusIcon,
-                  { color: getStatusColor(item.status, isQueued, isOptimistic) }
+                  { color: getStatusColor(item.status, isQueued) }
                 ]}
               >
-                {getStatusIcon(item.status, isQueued, isOptimistic)}
+                {getStatusIcon(item.status, isQueued)}
               </Text>
             )}
           </View>
@@ -1160,8 +1138,15 @@ export default function ChatScreen() {
     return null
   }
 
-  // Merge Firestore messages with queued and optimistic messages
+  // Merge Firestore messages with queued messages
   const getAllMessages = (): Message[] => {
+    console.log(
+      '🔄 getAllMessages called - messages:',
+      messages.length,
+      'queued:',
+      queuedMessages.length
+    )
+
     // Convert queued messages to Message format
     const queuedAsMessages: Message[] = queuedMessages.map((queued) => ({
       id: queued.id,
@@ -1176,12 +1161,17 @@ export default function ChatScreen() {
       replyTo: queued.replyTo
     }))
 
-    // Combine all messages - let the main deduplication handle everything
-    const allMessages = [
-      ...messages,
-      ...queuedAsMessages,
-      ...optimisticMessages
-    ]
+    console.log(
+      '🔄 Queued as messages:',
+      queuedAsMessages.map((q) => ({
+        id: q.id,
+        text: q.text,
+        status: q.status
+      }))
+    )
+
+    // Combine Firestore messages with queued messages
+    const allMessages = [...messages, ...queuedAsMessages]
 
     // Deduplicate messages by checking for similar content
     const deduplicatedMessages = allMessages.reduce((acc, message) => {
@@ -1197,29 +1187,39 @@ export default function ChatScreen() {
       if (!existingMessage) {
         acc.push(message)
       } else {
-        // If we have a Firestore message and a queued/optimistic message, prefer the Firestore one
-        if (
-          message.id.startsWith('queue_') ||
-          message.id.startsWith('optimistic_')
-        ) {
-          // Keep the existing (likely Firestore) message
-          return acc
-        } else {
-          // Replace with Firestore message
+        // Priority order: Firestore > Queued
+        const messagePriority = message.id.startsWith('queue_') ? 2 : 3
+        const existingPriority = existingMessage.id.startsWith('queue_') ? 2 : 3
+
+        // Keep the message with higher priority (Firestore = 3, Queued = 2)
+        if (messagePriority > existingPriority) {
           const index = acc.findIndex((m) => m.id === existingMessage.id)
           if (index !== -1) {
             acc[index] = message
           }
         }
+        // If same priority, keep the existing one to avoid duplicates
       }
 
       return acc
     }, [] as Message[])
 
     // Sort by timestamp
-    return deduplicatedMessages.sort(
+    const finalMessages = deduplicatedMessages.sort(
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     )
+
+    console.log(
+      '🔄 Final messages:',
+      finalMessages.map((m) => ({
+        id: m.id,
+        text: m.text,
+        status: m.status,
+        isQueued: m.id.startsWith('queue_')
+      }))
+    )
+
+    return finalMessages
   }
 
   if (loading) {

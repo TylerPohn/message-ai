@@ -1,5 +1,6 @@
 import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotifications } from '@/contexts/NotificationContext'
 import { db } from '@/firebaseConfig'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
@@ -25,6 +26,7 @@ import {
 
 export default function ChatsScreen() {
   const { user, userProfile, logout } = useAuth()
+  const { showBanner } = useNotifications()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -421,6 +423,20 @@ export default function ChatsScreen() {
     router.push('/chat/new')
   }
 
+  const testNotification = () => {
+    const testBanner = {
+      id: 'test-' + Date.now(),
+      conversationId: 'test-conversation',
+      senderId: 'test-sender',
+      senderName: 'Test User',
+      senderAvatar: undefined,
+      messageText: 'This is a test notification banner!',
+      messageType: 'text' as const,
+      timestamp: Date.now()
+    }
+    showBanner(testBanner)
+  }
+
   const renderConversation = ({ item }: { item: Conversation }) => {
     const presenceStatus = getPresenceStatus(item)
     const isOnline = presenceStatus === 'Online'
@@ -557,6 +573,12 @@ export default function ChatsScreen() {
             <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
           <TouchableOpacity
+            style={styles.testButton}
+            onPress={testNotification}
+          >
+            <Ionicons name='notifications-outline' size={20} color='#FFFFFF' />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.newChatButton}
             onPress={handleNewConversation}
           >
@@ -633,6 +655,14 @@ const styles = StyleSheet.create({
   cameraButtonText: {
     fontSize: 16,
     color: '#FFFFFF'
+  },
+  testButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   newChatButton: {
     width: 32,

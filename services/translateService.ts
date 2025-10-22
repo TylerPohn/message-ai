@@ -241,7 +241,7 @@ export class TranslateService {
       // Prepare request body
       const requestBody = {
         message: message.trim(),
-        targetLang: targetLang.trim()
+        target_lang: targetLang.trim()
       }
 
       // Make the HTTP request

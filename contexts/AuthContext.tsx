@@ -1,4 +1,5 @@
 import { auth, db } from '@/firebaseConfig'
+import { notificationService } from '@/services/notificationService'
 import { PresenceService } from '@/services/presenceService'
 import { UserProfile } from '@/types/messaging'
 import * as Localization from 'expo-localization'
@@ -146,6 +147,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await PresenceService.setUserOffline(user.uid)
         PresenceService.stopHeartbeat()
         PresenceService.cleanup()
+
+        // Clean up notifications
+        await notificationService.cleanupUserNotifications()
+        await notificationService.cleanup()
       }
       await signOut(auth)
       setUserProfile(null)
@@ -180,11 +185,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         PresenceService.initialize(user.uid)
         // Start heartbeat to keep presence fresh
         PresenceService.startHeartbeat(user.uid)
+
+        // Initialize notification service
+        await notificationService.initialize(user.uid)
       } else {
         setUserProfile(null)
         // Stop heartbeat and clean up presence tracking when user logs out
         PresenceService.stopHeartbeat()
         PresenceService.cleanup()
+
+        // Clean up notification service
+        await notificationService.cleanup()
       }
 
       setLoading(false)
