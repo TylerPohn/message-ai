@@ -27,6 +27,24 @@ export const Colors = {
   }
 }
 
+// WhatsApp dark theme color palette
+export const WhatsAppColors = {
+  primary: '#1F2C34', // Dark header background
+  secondary: '#00A884', // WhatsApp green accent
+  accent: '#00A884', // WhatsApp green for active states
+  background: '#0B141A', // Main dark background
+  lightBackground: '#0B141A', // Main dark background
+  darkBackground: '#1F2C34', // Cards, headers
+  text: '#E9EDEF', // Light text on dark
+  lightText: '#8696A0', // Muted text
+  border: '#2A3942', // Dark borders
+  online: '#00A884', // WhatsApp green for online status
+  offline: '#8696A0', // Muted for offline
+  error: '#FF3B30',
+  warning: '#FF9500',
+  info: '#007AFF'
+}
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

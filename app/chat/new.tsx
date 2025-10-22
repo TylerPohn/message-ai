@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -88,9 +89,7 @@ export default function NewConversationScreen() {
           const filtered = contacts.filter(
             (contact) =>
               contact.displayName.toLowerCase().includes(searchLower) ||
-              contact.email.toLowerCase().includes(searchLower) ||
-              (contact.status &&
-                contact.status.toLowerCase().includes(searchLower))
+              contact.email.toLowerCase().includes(searchLower)
           )
           setFilteredContacts(filtered)
         }
@@ -268,9 +267,17 @@ export default function NewConversationScreen() {
       >
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.displayName.charAt(0).toUpperCase()}
-            </Text>
+            {item.photoURL ? (
+              <Image
+                source={{ uri: item.photoURL }}
+                style={styles.avatarImage}
+                resizeMode='cover'
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {item.displayName.charAt(0).toUpperCase()}
+              </Text>
+            )}
           </View>
           {isContact && <View style={styles.contactBadge} />}
         </View>
@@ -326,7 +333,7 @@ export default function NewConversationScreen() {
 
         {creating && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size='small' color='#007AFF' />
+            <ActivityIndicator size='small' color='#00A884' />
           </View>
         )}
       </TouchableOpacity>
@@ -336,7 +343,7 @@ export default function NewConversationScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#007AFF' />
+        <ActivityIndicator size='large' color='#00A884' />
         <Text style={styles.loadingText}>Loading users...</Text>
       </View>
     )
@@ -409,6 +416,7 @@ export default function NewConversationScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder='Search users...'
+          placeholderTextColor='#8696A0'
           value={searchTerm}
           onChangeText={setSearchTerm}
           autoCapitalize='none'
@@ -462,7 +470,7 @@ export default function NewConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#0B141A'
   },
   header: {
     flexDirection: 'row',
@@ -470,7 +478,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    borderBottomColor: '#2A3942',
+    backgroundColor: '#1F2C34'
   },
   backButton: {
     paddingVertical: 8,
@@ -478,12 +487,12 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 17,
-    color: '#007AFF'
+    color: '#00A884'
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#000000',
+    color: '#E9EDEF',
     flex: 1,
     textAlign: 'center'
   },
@@ -494,26 +503,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    borderBottomColor: '#2A3942'
   },
   searchInput: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#2A3942',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#000000'
+    color: '#E9EDEF'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#0B141A'
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   emptyState: {
     flex: 1,
@@ -524,12 +533,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: '#E9EDEF',
     marginBottom: 8
   },
   emptyStateSubtitle: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: '#8696A0',
     textAlign: 'center'
   },
   sectionContainer: {
@@ -538,10 +547,10 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: '#E9EDEF',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F2F2F7'
+    backgroundColor: '#1F2C34'
   },
   contactsList: {
     maxHeight: 200
@@ -554,7 +563,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7',
+    borderBottomColor: '#2A3942',
     position: 'relative'
   },
   avatarContainer: {
@@ -564,7 +573,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00A884',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -572,6 +581,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold'
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25
   },
   userContent: {
     flex: 1,
@@ -586,22 +600,22 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: '#E9EDEF',
     flex: 1
   },
   lastSeen: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8696A0',
     marginLeft: 8
   },
   userEmail: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8696A0',
     marginBottom: 2
   },
   userStatus: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8696A0',
     fontStyle: 'italic'
   },
   loadingOverlay: {
@@ -610,7 +624,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: 'rgba(11, 20, 26, 0.8)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -618,7 +632,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: 16,
     marginVertical: 8,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#2A3942',
     borderRadius: 8,
     padding: 4
   },
@@ -630,7 +644,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   modeToggleActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2C34',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -640,10 +654,10 @@ const styles = StyleSheet.create({
   modeToggleText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   modeToggleTextActive: {
-    color: '#000000'
+    color: '#E9EDEF'
   },
   selectedUsersContainer: {
     flexDirection: 'row',
@@ -651,16 +665,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#1F2C34',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    borderBottomColor: '#2A3942'
   },
   selectedUsersText: {
     fontSize: 14,
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   createGroupButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00A884',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16
@@ -679,13 +693,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#8E8E93',
+    borderColor: '#8696A0',
     justifyContent: 'center',
     alignItems: 'center'
   },
   checkboxSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF'
+    backgroundColor: '#00A884',
+    borderColor: '#00A884'
   },
   checkboxText: {
     color: '#FFFFFF',
@@ -701,7 +715,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#FF9500',
     borderWidth: 2,
-    borderColor: '#FFFFFF'
+    borderColor: '#0B141A'
   },
   contactActionContainer: {
     marginLeft: 12,
@@ -711,15 +725,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#2A3942',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#8E8E93'
+    borderColor: '#2A3942'
   },
   addContactButtonText: {
     fontSize: 16,
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   removeContactButton: {
     width: 32,

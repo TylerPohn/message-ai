@@ -5,6 +5,7 @@ import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
+import { TranslateService } from '@/services/translateService'
 import { TypingService, TypingUser } from '@/services/typingService'
 import {
   Conversation,
@@ -12,6 +13,7 @@ import {
   MessageStatus,
   UserProfile
 } from '@/types/messaging'
+import { Ionicons } from '@expo/vector-icons'
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
@@ -62,6 +64,15 @@ export default function ChatScreen() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [lastMessageDoc, setLastMessageDoc] = useState<any>(null)
+  const [showOriginalText, setShowOriginalText] = useState<
+    Map<string, boolean>
+  >(new Map())
+  const [translationQueue, setTranslationQueue] = useState<Message[]>([])
+  const [isTranslatingBulk, setIsTranslatingBulk] = useState(false)
+  const [translationProgress, setTranslationProgress] = useState({
+    current: 0,
+    total: 0
+  })
   const flashListRef = useRef<any>(null)
 
   // Handle logout redirect
@@ -121,6 +132,14 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!user || !id) return
 
+    console.log('🔄 [ChatScreen] Initializing chat screen...')
+    console.log('🔄 [ChatScreen] User:', user?.uid)
+    console.log('🔄 [ChatScreen] User profile:', {
+      autoTranslate: userProfile?.autoTranslate,
+      preferredLanguage: userProfile?.preferredLanguage,
+      displayName: userProfile?.displayName
+    })
+
     // Initialize network service
     NetworkService.initialize()
 
@@ -165,7 +184,8 @@ export default function ChatScreen() {
     const loadInitialMessages = async () => {
       try {
         const result = await MessagingService.getConversationMessages(id, 50)
-        setMessages(result.messages.reverse()) // Reverse to show oldest first
+        const loadedMessages = result.messages.reverse() // Reverse to show oldest first
+        setMessages(loadedMessages)
         setLastMessageDoc(result.lastDoc)
         setHasMoreMessages(result.messages.length === 50)
         setLoading(false)
@@ -194,6 +214,68 @@ export default function ChatScreen() {
 
           for (const message of messagesToMark) {
             await MessagingService.markMessageAsDelivered(message.id)
+          }
+
+          // Auto-translate new messages if user has auto-translate enabled
+          console.log('🔄 [ChatScreen] Checking auto-translation conditions...')
+          console.log(
+            '🔄 [ChatScreen] userProfile?.autoTranslate:',
+            userProfile?.autoTranslate
+          )
+          console.log(
+            '🔄 [ChatScreen] userProfile?.preferredLanguage:',
+            userProfile?.preferredLanguage
+          )
+          console.log('🔄 [ChatScreen] newMessages count:', newMessages.length)
+
+          if (userProfile?.autoTranslate && userProfile?.preferredLanguage) {
+            console.log(
+              '✅ [ChatScreen] Auto-translate is enabled, filtering messages...'
+            )
+
+            // Filter and get only the most recent message that needs translation
+            const messagesToTranslate = newMessages
+              .filter(
+                (msg) =>
+                  msg.type === 'text' &&
+                  msg.senderId !== user.uid &&
+                  !msg.translatedText &&
+                  !msg.isTranslating
+              )
+              .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Most recent first
+              .slice(0, 1) // Take only the most recent
+
+            console.log(
+              '🔄 [ChatScreen] Messages to translate:',
+              messagesToTranslate.length
+            )
+            console.log(
+              '🔄 [ChatScreen] Message details:',
+              messagesToTranslate.map((msg) => ({
+                id: msg.id,
+                text: msg.text?.substring(0, 30) + '...',
+                senderId: msg.senderId,
+                hasTranslatedText: !!msg.translatedText,
+                isTranslating: !!msg.isTranslating
+              }))
+            )
+
+            // Translate only the most recent message
+            for (const message of messagesToTranslate) {
+              console.log(
+                '🔄 [ChatScreen] Starting translation for message:',
+                message.id
+              )
+              await handleAutoTranslation(message)
+            }
+          } else {
+            console.log(
+              '❌ [ChatScreen] Auto-translate disabled or missing settings:',
+              {
+                autoTranslate: userProfile?.autoTranslate,
+                preferredLanguage: userProfile?.preferredLanguage
+              }
+            )
           }
 
           // Clean up optimistic messages that now have Firestore equivalents
@@ -249,6 +331,11 @@ export default function ChatScreen() {
       if (typingTimeout) {
         clearTimeout(typingTimeout)
       }
+
+      // Cancel pending translations when leaving chat
+      setIsTranslatingBulk(false)
+      setTranslationQueue([])
+      setTranslationProgress({ current: 0, total: 0 })
     }
   }, [user, id, typingTimeout, messages])
 
@@ -640,6 +727,151 @@ export default function ChatScreen() {
     })
   }
 
+  // Handle auto-translation of messages
+  const handleAutoTranslation = async (message: Message) => {
+    console.log(
+      '🔄 [handleAutoTranslation] Starting translation for message:',
+      message.id
+    )
+    console.log(
+      '🔄 [handleAutoTranslation] Message text:',
+      message.text?.substring(0, 50) + '...'
+    )
+    console.log(
+      '🔄 [handleAutoTranslation] User preferred language:',
+      userProfile?.preferredLanguage
+    )
+
+    if (!userProfile?.preferredLanguage) {
+      console.log(
+        '❌ [handleAutoTranslation] No preferred language set, skipping translation'
+      )
+      return
+    }
+
+    try {
+      console.log(
+        '🔄 [handleAutoTranslation] Marking message as translating...'
+      )
+      // Set translating flag
+      await MessagingService.setMessageTranslating(message.id, true)
+
+      console.log('🔄 [handleAutoTranslation] Detecting language...')
+      // Detect language first
+      const detectedLanguage = await TranslateService.detectLanguage(
+        message.text
+      )
+      console.log(
+        '✅ [handleAutoTranslation] Detected language:',
+        detectedLanguage
+      )
+
+      // Only translate if the detected language is different from user's preferred language
+      if (detectedLanguage !== userProfile.preferredLanguage) {
+        console.log(
+          '🔄 [handleAutoTranslation] Languages differ, translating...'
+        )
+        const translationResult = await TranslateService.translateMessage(
+          message.text,
+          userProfile.preferredLanguage
+        )
+        console.log(
+          '✅ [handleAutoTranslation] Translation result:',
+          translationResult
+        )
+
+        console.log(
+          '🔄 [handleAutoTranslation] Updating message with translation...'
+        )
+        // Update message with translation
+        await MessagingService.updateMessageTranslation(
+          message.id,
+          translationResult.translatedText || translationResult.message,
+          detectedLanguage,
+          userProfile.preferredLanguage
+        )
+        console.log(
+          '✅ [handleAutoTranslation] Translation completed successfully'
+        )
+      } else {
+        console.log(
+          '✅ [handleAutoTranslation] Same language detected, clearing translating flag'
+        )
+        // If same language, just clear the translating flag
+        await MessagingService.setMessageTranslating(message.id, false)
+      }
+    } catch (error) {
+      console.error(
+        '❌ [handleAutoTranslation] Error auto-translating message:',
+        error
+      )
+      console.error('❌ [handleAutoTranslation] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      // Clear translating flag on error
+      try {
+        await MessagingService.setMessageTranslating(message.id, false)
+      } catch (clearError) {
+        console.error('Error clearing translating flag:', clearError)
+      }
+    }
+  }
+
+  // Process translation queue with rate limiting
+  const processTranslationQueue = async () => {
+    if (isTranslatingBulk || translationQueue.length === 0) return
+
+    setIsTranslatingBulk(true)
+    setTranslationProgress({ current: 0, total: translationQueue.length })
+
+    const queue = [...translationQueue]
+    setTranslationQueue([])
+
+    for (let i = 0; i < queue.length; i++) {
+      const message = queue[i]
+      setTranslationProgress({ current: i + 1, total: queue.length })
+
+      try {
+        await handleAutoTranslation(message)
+      } catch (error) {
+        console.error('Error translating message in queue:', error)
+      }
+
+      // Rate limiting: 500ms delay between translations
+      if (i < queue.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+
+    setIsTranslatingBulk(false)
+    setTranslationProgress({ current: 0, total: 0 })
+  }
+
+  // Add messages to translation queue (for bulk translation)
+  const addToTranslationQueue = (messages: Message[]) => {
+    const untranslatedMessages = messages.filter(
+      (msg) =>
+        msg.type === 'text' &&
+        msg.senderId !== user?.uid &&
+        !msg.translatedText &&
+        !msg.isTranslating
+    )
+
+    if (untranslatedMessages.length > 0) {
+      setTranslationQueue((prev) => [...prev, ...untranslatedMessages])
+    }
+  }
+
+  // Toggle between original and translated text
+  const toggleMessageText = (messageId: string) => {
+    setShowOriginalText((prev) => {
+      const newMap = new Map(prev)
+      newMap.set(messageId, !newMap.get(messageId))
+      return newMap
+    })
+  }
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
@@ -737,9 +969,20 @@ export default function ChatScreen() {
         {showSenderInfo && (
           <View style={styles.senderInfo}>
             <View style={styles.senderAvatar}>
-              <Text style={styles.senderAvatarText}>
-                {senderName.charAt(0).toUpperCase()}
-              </Text>
+              {(() => {
+                const senderProfile = participantProfiles.get(item.senderId)
+                return senderProfile?.photoURL ? (
+                  <Image
+                    source={{ uri: senderProfile.photoURL }}
+                    style={styles.senderAvatarImage}
+                    resizeMode='cover'
+                  />
+                ) : (
+                  <Text style={styles.senderAvatarText}>
+                    {senderName.charAt(0).toUpperCase()}
+                  </Text>
+                )
+              })()}
             </View>
             <Text style={styles.senderName}>{senderName}</Text>
           </View>
@@ -763,19 +1006,57 @@ export default function ChatScreen() {
                 style={styles.messageImage}
                 resizeMode='cover'
               />
-              <View style={styles.imageOverlay}>
-                <Text style={styles.imageText}>📷 Photo</Text>
-              </View>
             </TouchableOpacity>
           ) : (
-            <Text
-              style={[
-                styles.messageText,
-                isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-              ]}
+            <TouchableOpacity
+              onPress={() => {
+                if (item.translatedText && !isOwnMessage) {
+                  toggleMessageText(item.id)
+                }
+              }}
+              disabled={!item.translatedText || isOwnMessage}
             >
-              {item.text}
-            </Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  isOwnMessage ? styles.ownMessageText : styles.otherMessageText
+                ]}
+              >
+                {(() => {
+                  // Show translated text if available and user preference is to show translations
+                  if (
+                    item.translatedText &&
+                    !isOwnMessage &&
+                    userProfile?.autoTranslate &&
+                    !showOriginalText.get(item.id)
+                  ) {
+                    return item.translatedText
+                  }
+                  return item.text
+                })()}
+              </Text>
+
+              {/* Translation indicators */}
+              {item.translatedText && !isOwnMessage && (
+                <View style={styles.translationIndicator}>
+                  <Text style={styles.translationText}>
+                    {showOriginalText.get(item.id)
+                      ? `Translated from ${item.detectedLanguage?.toUpperCase()}`
+                      : 'Tap to show original'}
+                  </Text>
+                </View>
+              )}
+
+              {/* Translation loading indicator */}
+              {item.isTranslating && !isOwnMessage && (
+                <View style={styles.translationLoading}>
+                  <ActivityIndicator size='small' color='#00A884' />
+                  <Text style={styles.translationLoadingText}>
+                    Translating...
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           )}
           <View style={styles.messageFooter}>
             <Text
@@ -927,7 +1208,7 @@ export default function ChatScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#007AFF' />
+        <ActivityIndicator size='large' color='#00A884' />
         <Text style={styles.loadingText}>Loading messages...</Text>
       </View>
     )
@@ -984,6 +1265,27 @@ export default function ChatScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
+        {/* Translation Progress Indicator */}
+        {isTranslatingBulk && (
+          <View style={styles.translationProgressBanner}>
+            <ActivityIndicator size='small' color='#00A884' />
+            <Text style={styles.translationProgressText}>
+              Translating messages... ({translationProgress.current}/
+              {translationProgress.total})
+            </Text>
+            <TouchableOpacity
+              style={styles.translationProgressClose}
+              onPress={() => {
+                setIsTranslatingBulk(false)
+                setTranslationQueue([])
+                setTranslationProgress({ current: 0, total: 0 })
+              }}
+            >
+              <Text style={styles.translationProgressCloseText}>×</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Messages */}
         <FlashList
           ref={flashListRef}
@@ -1001,7 +1303,7 @@ export default function ChatScreen() {
           ListHeaderComponent={
             loadingMore ? (
               <View style={styles.loadingMoreContainer}>
-                <ActivityIndicator size='small' color='#007AFF' />
+                <ActivityIndicator size='small' color='#00A884' />
                 <Text style={styles.loadingMoreText}>
                   Loading more messages...
                 </Text>
@@ -1071,13 +1373,14 @@ export default function ChatScreen() {
             onPress={handleImagePicker}
             disabled={uploadingImage}
           >
-            <Text style={styles.attachButtonText}>📷</Text>
+            <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
           <TextInput
             style={styles.textInput}
             value={messageText}
             onChangeText={handleTextChange}
             placeholder='Type a message...'
+            placeholderTextColor='#8696A0'
             multiline
             maxLength={1000}
           />
@@ -1116,22 +1419,22 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#0B141A'
   },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#0B141A'
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#0B141A'
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   header: {
     flexDirection: 'row',
@@ -1139,14 +1442,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    borderBottomColor: '#2A3942',
+    backgroundColor: '#1F2C34'
   },
   backButton: {
     padding: 8
   },
   backButtonText: {
     fontSize: 20,
-    color: '#007AFF'
+    color: '#00A884'
   },
   headerCenter: {
     flex: 1,
@@ -1155,7 +1459,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: '#E9EDEF',
     textAlign: 'center'
   },
   networkStatus: {
@@ -1168,7 +1472,7 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flex: 1,
-    backgroundColor: '#F2F2F7'
+    backgroundColor: '#0B141A'
   },
   messagesContent: {
     paddingVertical: 16,
@@ -1190,14 +1494,14 @@ const styles = StyleSheet.create({
     borderRadius: 18
   },
   ownMessageBubble: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#005C4B',
     borderBottomRightRadius: 4
   },
   otherMessageBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2C34',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#E5E5E7'
+    borderColor: '#2A3942'
   },
   messageText: {
     fontSize: 16,
@@ -1207,7 +1511,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF'
   },
   otherMessageText: {
-    color: '#000000'
+    color: '#E9EDEF'
   },
   messageTime: {
     fontSize: 12,
@@ -1218,7 +1522,7 @@ const styles = StyleSheet.create({
     opacity: 0.8
   },
   otherMessageTime: {
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   messageFooter: {
     flexDirection: 'row',
@@ -1237,9 +1541,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2C34',
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E7',
+    borderTopColor: '#2A3942',
     minHeight: 60
   },
   inputContainerKeyboardIOS: {
@@ -1256,7 +1560,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5E5E7',
+    borderColor: '#2A3942',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1264,16 +1568,18 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     minHeight: 40,
     fontSize: 16,
-    textAlignVertical: 'top'
+    textAlignVertical: 'top',
+    backgroundColor: '#2A3942',
+    color: '#E9EDEF'
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00A884',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20
   },
   sendButtonDisabled: {
-    backgroundColor: '#8E8E93'
+    backgroundColor: '#374955'
   },
   sendButtonText: {
     color: '#FFFFFF',
@@ -1282,26 +1588,26 @@ const styles = StyleSheet.create({
   },
   presenceStatus: {
     fontSize: 12,
-    color: '#34C759',
+    color: '#00A884',
     marginTop: 2,
     fontWeight: '500'
   },
   userStatus: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: '#8696A0',
     marginTop: 2,
     fontStyle: 'italic'
   },
   typingIndicator: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#00A884',
     marginTop: 2,
     fontWeight: '500',
     fontStyle: 'italic'
   },
   seenIndicator: {
     fontSize: 11,
-    color: '#34C759',
+    color: '#00A884',
     marginTop: 2,
     textAlign: 'right',
     fontWeight: '500'
@@ -1326,10 +1632,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold'
   },
+  senderAvatarImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
   senderName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8E8E93'
+    color: '#8696A0'
   },
   // Image-related styles
   imageContainer: {
@@ -1344,37 +1655,20 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 12
   },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingVertical: 4,
-    paddingHorizontal: 8
-  },
-  imageText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500'
-  },
   attachButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#2A3942',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12
   },
-  attachButtonText: {
-    fontSize: 20
-  },
   imagePreviewContainer: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#1F2C34',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E7'
+    borderTopColor: '#2A3942'
   },
   imagePreview: {
     width: 120,
@@ -1402,10 +1696,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#007AFF'
+    backgroundColor: '#00A884'
   },
   sendImageButtonDisabled: {
-    backgroundColor: '#8E8E93'
+    backgroundColor: '#374955'
   },
   sendImageText: {
     color: '#FFFFFF',
@@ -1421,7 +1715,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00A884',
     borderRadius: 2
   },
   loadingMoreContainer: {
@@ -1434,6 +1728,55 @@ const styles = StyleSheet.create({
   loadingMoreText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#8E8E93'
+    color: '#8696A0'
+  },
+  translationIndicator: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(0, 168, 132, 0.1)',
+    borderRadius: 8,
+    alignSelf: 'flex-start'
+  },
+  translationText: {
+    fontSize: 10,
+    color: '#00A884',
+    fontStyle: 'italic'
+  },
+  translationLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2
+  },
+  translationLoadingText: {
+    fontSize: 10,
+    color: '#00A884',
+    marginLeft: 4,
+    fontStyle: 'italic'
+  },
+  translationProgressBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 168, 132, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A3942'
+  },
+  translationProgressText: {
+    fontSize: 14,
+    color: '#00A884',
+    marginLeft: 8,
+    flex: 1
+  },
+  translationProgressClose: {
+    padding: 4
+  },
+  translationProgressCloseText: {
+    fontSize: 18,
+    color: '#00A884',
+    fontWeight: 'bold'
   }
 })

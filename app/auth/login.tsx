@@ -1,5 +1,4 @@
-import { ThemedText } from '@/components/themed-text'
-import { ThemedView } from '@/components/themed-view'
+import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
 import Constants from 'expo-constants'
 import { Link, router } from 'expo-router'
@@ -34,7 +33,7 @@ export default function LoginScreen() {
     setLoading(true)
     try {
       await signIn(email, password)
-      router.replace('/chat/')
+      router.replace('/(tabs)')
     } catch (error: any) {
       Alert.alert(
         'Login Failed',
@@ -51,7 +50,7 @@ export default function LoginScreen() {
     setLoading(true)
     try {
       await signIn(devEmail, devPassword)
-      router.replace('/chat/')
+      router.replace('/(tabs)')
     } catch (error: any) {
       Alert.alert(
         'Dev Login Failed',
@@ -68,21 +67,16 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <ThemedView style={styles.formContainer}>
-          <ThemedText type='title' style={styles.title}>
-            Welcome Back
-          </ThemedText>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Welcome Back</Text>
 
-          <ThemedText style={styles.subtitle}>
-            Sign in to your MessageAI account
-          </ThemedText>
+          <Text style={styles.subtitle}>Sign in to your MessageAI account</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
               placeholder='Enter your email'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={email}
               onChangeText={setEmail}
               keyboardType='email-address'
@@ -92,11 +86,10 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
               placeholder='Enter your password'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -115,9 +108,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.linkContainer}>
-            <ThemedText style={styles.linkText}>
-              Don&apos;t have an account?{' '}
-            </ThemedText>
+            <Text style={styles.linkText}>Don&apos;t have an account? </Text>
             <Link href='/auth/signup' asChild>
               <TouchableOpacity>
                 <Text style={styles.link}>Sign Up</Text>
@@ -128,10 +119,8 @@ export default function LoginScreen() {
           {/* Development Mode Login Buttons */}
           {isDevMode && (
             <View style={styles.devContainer}>
-              <ThemedText style={styles.devTitle}>Development Mode</ThemedText>
-              <ThemedText style={styles.devSubtitle}>
-                Quick login for testing
-              </ThemedText>
+              <Text style={styles.devTitle}>Development Mode</Text>
+              <Text style={styles.devSubtitle}>Quick login for testing</Text>
 
               <TouchableOpacity
                 style={[
@@ -178,7 +167,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </ThemedView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -186,7 +175,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    backgroundColor: WhatsAppColors.background
   },
   scrollContainer: {
     flexGrow: 1,
@@ -199,40 +189,40 @@ const styles = StyleSheet.create({
     alignSelf: 'center'
   },
   title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: WhatsAppColors.text,
     textAlign: 'center',
     marginBottom: 8
   },
   subtitle: {
+    fontSize: 16,
+    color: WhatsAppColors.lightText,
     textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.7
+    marginBottom: 32
   },
   inputContainer: {
     marginBottom: 20
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333'
-  },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: WhatsAppColors.border,
+    borderRadius: 10,
+    padding: 16,
     fontSize: 16,
-    backgroundColor: '#fff'
+    backgroundColor: WhatsAppColors.darkBackground,
+    color: WhatsAppColors.text
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: WhatsAppColors.secondary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     marginTop: 8
   },
   buttonDisabled: {
-    backgroundColor: '#ccc'
+    backgroundColor: WhatsAppColors.secondary,
+    opacity: 0.5
   },
   buttonText: {
     color: '#fff',
@@ -245,41 +235,41 @@ const styles = StyleSheet.create({
     marginTop: 24
   },
   linkText: {
-    fontSize: 16
+    fontSize: 16,
+    color: WhatsAppColors.lightText
   },
   link: {
-    color: '#007AFF',
+    color: WhatsAppColors.secondary,
     fontSize: 16,
     fontWeight: '600'
   },
   // Development mode styles
   devContainer: {
     marginTop: 32,
-    padding: 16,
-    backgroundColor: '#fff3cd',
-    borderRadius: 8,
+    padding: 20,
+    backgroundColor: WhatsAppColors.darkBackground,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ffeaa7'
+    borderColor: WhatsAppColors.border
   },
   devTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#856404',
+    color: WhatsAppColors.text,
     textAlign: 'center',
     marginBottom: 4
   },
   devSubtitle: {
     fontSize: 14,
-    color: '#856404',
+    color: WhatsAppColors.lightText,
     textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.8
+    marginBottom: 16
   },
   devButton: {
-    padding: 12,
-    borderRadius: 6,
+    padding: 14,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 10
   },
   devButton1: {
     backgroundColor: '#ff6b6b'
@@ -291,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#9b59b6'
   },
   devButtonDisabled: {
-    backgroundColor: '#ccc'
+    opacity: 0.5
   },
   devButtonText: {
     color: '#fff',

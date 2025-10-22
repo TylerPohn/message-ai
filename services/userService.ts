@@ -112,12 +112,91 @@ export class UserService {
       // Update the status field
       await updateDoc(userRef, {
         status: status.trim(),
+        statusUpdatedAt: new Date(),
         updatedAt: new Date()
       })
 
       console.log('User status updated successfully:', userId)
     } catch (error) {
       console.error('Error updating user status:', error)
+      throw error
+    }
+  }
+
+  // Update user avatar
+  static async updateUserAvatar(
+    userId: string,
+    photoURL: string
+  ): Promise<void> {
+    try {
+      // Validate photoURL
+      if (!photoURL || !photoURL.trim()) {
+        throw new Error('Photo URL is required')
+      }
+
+      // Find the user document by uid
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('uid', '==', userId)
+      )
+
+      const usersSnapshot = await getDocs(usersQuery)
+      if (usersSnapshot.empty) {
+        throw new Error('User not found')
+      }
+
+      const userDoc = usersSnapshot.docs[0]
+      const userRef = doc(db, 'users', userDoc.id)
+
+      // Update the photoURL field
+      await updateDoc(userRef, {
+        photoURL: photoURL.trim(),
+        updatedAt: new Date()
+      })
+
+      console.log('User avatar updated successfully:', userId)
+    } catch (error) {
+      console.error('Error updating user avatar:', error)
+      throw error
+    }
+  }
+
+  // Update user language preferences
+  static async updateLanguagePreferences(
+    userId: string,
+    preferredLanguage: string,
+    autoTranslate: boolean
+  ): Promise<void> {
+    try {
+      // Validate language code
+      if (!preferredLanguage || !preferredLanguage.trim()) {
+        throw new Error('Preferred language is required')
+      }
+
+      // Find the user document by uid
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('uid', '==', userId)
+      )
+
+      const usersSnapshot = await getDocs(usersQuery)
+      if (usersSnapshot.empty) {
+        throw new Error('User not found')
+      }
+
+      const userDoc = usersSnapshot.docs[0]
+      const userRef = doc(db, 'users', userDoc.id)
+
+      // Update the language preference fields
+      await updateDoc(userRef, {
+        preferredLanguage: preferredLanguage.trim(),
+        autoTranslate: autoTranslate,
+        updatedAt: new Date()
+      })
+
+      console.log('User language preferences updated successfully:', userId)
+    } catch (error) {
+      console.error('Error updating user language preferences:', error)
       throw error
     }
   }

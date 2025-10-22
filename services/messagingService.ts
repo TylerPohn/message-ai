@@ -389,34 +389,17 @@ export class MessagingService {
       messagesQuery = query(messagesQuery, startAfter(startAfterDoc))
     }
 
-    return onSnapshot(messagesQuery, async (messagesSnapshot) => {
+    return onSnapshot(messagesQuery, (messagesSnapshot) => {
       const messages = messagesSnapshot.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id, // Use Firestore document ID as authoritative ID
         timestamp: doc.data().timestamp?.toDate() || new Date()
       })) as Message[]
 
-      // Mark new messages as delivered (if not sent by current user)
-      await this.markNewMessagesAsDelivered(messages, conversationId)
-
+      // ✅ FIXED: Remove async operation from listener
+      // Delivered status is handled in UI components where we have user context
       callback(messages)
     })
-  }
-
-  // Mark new messages as delivered when they reach the recipient's device
-  private static async markNewMessagesAsDelivered(
-    messages: Message[],
-    conversationId: string
-  ): Promise<void> {
-    try {
-      // Get current user ID from auth context (we'll need to pass this in)
-      // For now, we'll implement this in the UI components where we have access to user context
-      console.log(
-        'New messages received - delivered status will be handled in UI components'
-      )
-    } catch (error) {
-      console.error('Error marking messages as delivered:', error)
-    }
   }
 
   // Mark a specific message as delivered
@@ -437,6 +420,45 @@ export class MessagingService {
   ): Promise<void> {
     const messageRef = doc(db, COLLECTIONS.MESSAGES, messageId)
     await updateDoc(messageRef, { status })
+  }
+
+  // Set message translating flag
+  static async setMessageTranslating(
+    messageId: string,
+    isTranslating: boolean
+  ): Promise<void> {
+    try {
+      const messageRef = doc(db, COLLECTIONS.MESSAGES, messageId)
+      await updateDoc(messageRef, {
+        isTranslating,
+        updatedAt: new Date()
+      })
+    } catch (error) {
+      console.error('Error setting message translating flag:', error)
+      throw error
+    }
+  }
+
+  // Update message translation
+  static async updateMessageTranslation(
+    messageId: string,
+    translatedText: string,
+    detectedLanguage: string,
+    translatedTo: string
+  ): Promise<void> {
+    try {
+      const messageRef = doc(db, COLLECTIONS.MESSAGES, messageId)
+      await updateDoc(messageRef, {
+        translatedText,
+        detectedLanguage,
+        translatedTo,
+        isTranslating: false,
+        updatedAt: new Date()
+      })
+    } catch (error) {
+      console.error('Error updating message translation:', error)
+      throw error
+    }
   }
 
   // Mark messages as read

@@ -1,8 +1,7 @@
-import { ThemedText } from '@/components/themed-text'
 import { useAuth } from '@/contexts/AuthContext'
 import { Redirect } from 'expo-router'
 import React from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -15,7 +14,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size='large' color='#007AFF' />
-        <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     )
   }

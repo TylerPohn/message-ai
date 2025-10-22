@@ -36,6 +36,10 @@ export interface Message {
   }
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   replyTo?: string // ID of message being replied to
+  translatedText?: string
+  detectedLanguage?: string
+  translatedTo?: string
+  isTranslating?: boolean
 }
 
 export interface Membership {
@@ -54,12 +58,15 @@ export interface UserProfile {
   displayName: string
   photoURL?: string
   status?: string
+  statusUpdatedAt?: Date
   lastSeen: Date
   createdAt: Date
   presence?: {
     status: 'online' | 'offline'
     lastSeen: Date
   }
+  preferredLanguage?: string
+  autoTranslate?: boolean
 }
 
 export interface Contact {
@@ -87,3 +94,24 @@ export type ConversationType = 'direct' | 'group'
 
 // Message types
 export type MessageType = 'text' | 'image' | 'system'
+
+// Language codes for translation
+export const SUPPORTED_LANGUAGES = {
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  ru: 'Russian',
+  ja: 'Japanese',
+  ko: 'Korean',
+  zh: 'Chinese',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  th: 'Thai',
+  vi: 'Vietnamese',
+  nl: 'Dutch'
+} as const
+
+export type LanguageCode = keyof typeof SUPPORTED_LANGUAGES

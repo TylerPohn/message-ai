@@ -18,11 +18,53 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name='index' options={{ headerShown: false }} />
-          <Stack.Screen name='chat' options={{ headerShown: false }} />
-          <Stack.Screen name='profile' options={{ headerShown: false }} />
-          <Stack.Screen name='auth' options={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: '#0B141A' }
+          }}
+        >
+          <Stack.Screen
+            name='index'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
+          <Stack.Screen
+            name='(tabs)'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
+          <Stack.Screen
+            name='chat'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
+          <Stack.Screen
+            name='profile'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
+          <Stack.Screen
+            name='contacts'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
+          <Stack.Screen
+            name='auth'
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0B141A' }
+            }}
+          />
         </Stack>
         <StatusBar style='auto' />
       </ThemeProvider>

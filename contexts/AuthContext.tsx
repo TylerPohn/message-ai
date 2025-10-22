@@ -1,5 +1,7 @@
 import { auth, db } from '@/firebaseConfig'
 import { PresenceService } from '@/services/presenceService'
+import { UserProfile } from '@/types/messaging'
+import * as Localization from 'expo-localization'
 import {
   User,
   createUserWithEmailAndPassword,
@@ -10,16 +12,6 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import React, { createContext, useContext, useEffect, useState } from 'react'
-
-interface UserProfile {
-  uid: string
-  email: string
-  displayName: string
-  photoURL?: string
-  status?: string
-  lastSeen: Date
-  createdAt: Date
-}
 
 interface AuthContextType {
   user: User | null
@@ -67,6 +59,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const createdAt = new Date()
       const lastSeen = new Date()
 
+      // Get device language for default language preference
+      const deviceLanguage = Localization.locale?.split('-')[0] || 'en'
+
       try {
         await setDoc(userRef, {
           uid: user.uid,
@@ -75,7 +70,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           photoURL: photoURL || additionalData?.photoURL || '',
           status: additionalData?.status || '',
           lastSeen,
-          createdAt
+          createdAt,
+          preferredLanguage:
+            additionalData?.preferredLanguage || deviceLanguage,
+          autoTranslate: additionalData?.autoTranslate || false
         })
       } catch (error) {
         console.error('Error creating user profile:', error)
@@ -97,8 +95,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           displayName: profileData.displayName,
           photoURL: profileData.photoURL,
           status: profileData.status,
+          statusUpdatedAt: profileData.statusUpdatedAt?.toDate(),
           lastSeen: profileData.lastSeen?.toDate() || new Date(),
-          createdAt: profileData.createdAt?.toDate() || new Date()
+          createdAt: profileData.createdAt?.toDate() || new Date(),
+          preferredLanguage: profileData.preferredLanguage || 'en',
+          autoTranslate: profileData.autoTranslate || false
         })
       }
     } catch (error) {

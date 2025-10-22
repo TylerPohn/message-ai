@@ -1,3 +1,4 @@
+import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
@@ -5,22 +6,23 @@ import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { UserCacheService } from '@/services/userCacheService'
 import { Conversation, UserProfile } from '@/types/messaging'
+import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from '@react-navigation/native'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
+  Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native'
 
-export default function ChatListScreen() {
-  const { user, userProfile, logout, updateUserProfile } = useAuth()
+export default function ChatsScreen() {
+  const { user, userProfile, logout } = useAuth()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,9 +39,6 @@ export default function ChatListScreen() {
   const [presenceData, setPresenceData] = useState<Map<string, PresenceData>>(
     new Map()
   )
-  const [statusModalVisible, setStatusModalVisible] = useState(false)
-  const [statusText, setStatusText] = useState(userProfile?.status || '')
-  const [statusLoading, setStatusLoading] = useState(false)
 
   // Handle logout redirect
   useEffect(() => {
@@ -193,6 +192,13 @@ export default function ChatListScreen() {
         )
         ;(window as any).presenceUnsubscribers = []
       }
+      // Clean up status listeners
+      if ((window as any).statusUnsubscribers) {
+        ;(window as any).statusUnsubscribers.forEach((unsub: () => void) =>
+          unsub()
+        )
+        ;(window as any).statusUnsubscribers = []
+      }
     }
   }, [user])
 
@@ -230,6 +236,30 @@ export default function ChatListScreen() {
     }, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  // Clear cache and refetch profiles when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user && conversations.length > 0) {
+        // Clear cache for all participants to force fresh data
+        const allParticipantIds = new Set<string>()
+        conversations.forEach((conv) => {
+          conv.participants.forEach((pid) => {
+            if (pid !== user.uid) {
+              allParticipantIds.add(pid)
+              UserCacheService.clearUserCache(pid)
+            }
+          })
+        })
+
+        console.log(
+          '[ChatList] Cleared cache for participants on focus:',
+          Array.from(allParticipantIds)
+        )
+        // Refetch will happen automatically when userProfiles state updates
+      }
+    }, [conversations, user])
+  )
 
   const formatTimestamp = (timestamp: Date) => {
     const now = new Date()
@@ -343,70 +373,36 @@ export default function ChatListScreen() {
     router.push('/chat/new')
   }
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Sign Out',
-      `Are you sure you want to sign out, ${userProfile?.displayName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout()
-              // User will be redirected to login screen automatically
-            } catch (error) {
-              console.error('Logout error:', error)
-              Alert.alert('Error', 'Failed to sign out. Please try again.')
-            }
-          }
-        }
-      ]
-    )
-  }
-
-  const handleEditStatus = () => {
-    setStatusText(userProfile?.status || '')
-    setStatusModalVisible(true)
-  }
-
-  const handleSaveStatus = async () => {
-    if (!user) return
-
-    setStatusLoading(true)
-    try {
-      await updateUserProfile({ status: statusText.trim() })
-      setStatusModalVisible(false)
-      Alert.alert('Success', 'Status updated successfully!')
-    } catch (error) {
-      console.error('Error updating status:', error)
-      Alert.alert('Error', 'Failed to update status. Please try again.')
-    } finally {
-      setStatusLoading(false)
-    }
-  }
-
-  const handleCancelStatus = () => {
-    setStatusText(userProfile?.status || '')
-    setStatusModalVisible(false)
-  }
-
-  const handleClearStatus = () => {
-    setStatusText('')
-  }
-
-  const handleGoToProfile = () => {
-    router.push('/profile')
-  }
-
-  const handleGoToContacts = () => {
-    router.push('/contacts')
-  }
-
   const renderConversation = ({ item }: { item: Conversation }) => {
     const presenceStatus = getPresenceStatus(item)
     const isOnline = presenceStatus === 'Online'
+
+    // Get avatar for direct messages
+    const getAvatarForConversation = () => {
+      if (item.type === 'group') {
+        return null // Groups use initials for now
+      }
+
+      // For direct messages, find the other participant
+      const otherParticipantId = item.participants.find(
+        (id) => id !== user?.uid
+      )
+      if (otherParticipantId) {
+        const otherUserProfile = userProfiles.get(otherParticipantId)
+        return otherUserProfile?.photoURL
+      }
+      return null
+    }
+
+    const avatarURL = getAvatarForConversation()
+
+    // Get other user's profile for status display (direct messages only)
+    const otherUserProfile =
+      item.type === 'direct'
+        ? userProfiles.get(
+            item.participants.find((id) => id !== user?.uid) || ''
+          )
+        : null
 
     return (
       <TouchableOpacity
@@ -415,14 +411,22 @@ export default function ChatListScreen() {
       >
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.type === 'group'
-                ? item.participants
-                    .filter((id) => id !== user?.uid)[0]
-                    ?.charAt(0)
-                    .toUpperCase() || 'G'
-                : getConversationTitle(item).charAt(0).toUpperCase()}
-            </Text>
+            {avatarURL ? (
+              <Image
+                source={{ uri: avatarURL }}
+                style={styles.avatarImage}
+                resizeMode='cover'
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {item.type === 'group'
+                  ? item.participants
+                      .filter((id) => id !== user?.uid)[0]
+                      ?.charAt(0)
+                      .toUpperCase() || 'G'
+                  : getConversationTitle(item).charAt(0).toUpperCase()}
+              </Text>
+            )}
           </View>
           {isOnline && <View style={styles.onlineIndicator} />}
         </View>
@@ -453,21 +457,11 @@ export default function ChatListScreen() {
             <Text style={styles.presenceStatus}>{presenceStatus}</Text>
           )}
 
-          {/* Show status message for direct messages */}
-          {item.type === 'direct' &&
-            (() => {
-              const otherParticipant = item.participants.find(
-                (id) => id !== user?.uid
-              )
-              const otherUserProfile = otherParticipant
-                ? userProfiles.get(otherParticipant)
-                : null
-              return otherUserProfile?.status ? (
-                <Text style={styles.statusMessage} numberOfLines={1}>
-                  {otherUserProfile.status}
-                </Text>
-              ) : null
-            })()}
+          {otherUserProfile?.status && (
+            <Text style={styles.statusMessage} numberOfLines={1}>
+              {otherUserProfile.status}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     )
@@ -476,7 +470,7 @@ export default function ChatListScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color='#007AFF' />
+        <ActivityIndicator size='large' color={WhatsAppColors.secondary} />
         <Text style={styles.loadingText}>Loading conversations...</Text>
       </View>
     )
@@ -486,7 +480,7 @@ export default function ChatListScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Messages</Text>
+          <Text style={styles.headerTitle}>MessageAI</Text>
           {!networkState.isOnline && (
             <Text
               style={[
@@ -506,31 +500,19 @@ export default function ChatListScreen() {
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            style={styles.statusButton}
-            onPress={handleEditStatus}
+            style={styles.cameraButton}
+            onPress={() => {
+              // Camera functionality placeholder
+              Alert.alert('Camera', 'Camera feature coming soon!')
+            }}
           >
-            <Text style={styles.statusButtonText}>Status</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.contactsButton}
-            onPress={handleGoToContacts}
-          >
-            <Text style={styles.contactsButtonText}>Contacts</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={handleGoToProfile}
-          >
-            <Text style={styles.profileButtonText}>Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
+            <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.newChatButton}
             onPress={handleNewConversation}
           >
-            <Text style={styles.newChatButtonText}>+</Text>
+            <Ionicons name='add' size={20} color='#FFFFFF' />
           </TouchableOpacity>
         </View>
       </View>
@@ -550,85 +532,6 @@ export default function ChatListScreen() {
           style={styles.conversationsList}
         />
       )}
-
-      {/* Status Edit Modal */}
-      <Modal
-        visible={statusModalVisible}
-        animationType='slide'
-        transparent={true}
-        onRequestClose={handleCancelStatus}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Status</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={handleCancelStatus}
-              >
-                <Text style={styles.modalCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>
-                Let others know what you&apos;re up to
-              </Text>
-
-              <View style={styles.statusInputContainer}>
-                <TextInput
-                  style={styles.statusInput}
-                  value={statusText}
-                  onChangeText={setStatusText}
-                  placeholder="What's on your mind?"
-                  placeholderTextColor='#8E8E93'
-                  multiline
-                  maxLength={140}
-                  textAlignVertical='top'
-                />
-                <View style={styles.statusFooter}>
-                  <Text style={styles.characterCount}>
-                    {statusText.length}/140
-                  </Text>
-                  {statusText.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={handleClearStatus}
-                    >
-                      <Text style={styles.clearButtonText}>Clear</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  statusLoading && styles.saveButtonDisabled
-                ]}
-                onPress={handleSaveStatus}
-                disabled={statusLoading}
-              >
-                {statusLoading ? (
-                  <ActivityIndicator size='small' color='#FFFFFF' />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancelStatus}
-                disabled={statusLoading}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   )
 }
@@ -636,7 +539,7 @@ export default function ChatListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF'
+    backgroundColor: WhatsAppColors.background
   },
   header: {
     flexDirection: 'row',
@@ -644,8 +547,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    backgroundColor: WhatsAppColors.primary,
+    paddingTop: 50 // Account for status bar
   },
   headerLeft: {
     flex: 1
@@ -653,40 +556,41 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
-  },
-  logoutButton: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
-  },
-  logoutButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
+    gap: 16
   },
   headerTitle: {
-    fontSize: 34,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#000000'
+    color: '#FFFFFF'
   },
   networkStatus: {
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 2,
     fontWeight: '500'
   },
   queueStatus: {
     fontSize: 12,
     marginTop: 2,
-    color: '#FF9500',
+    color: WhatsAppColors.warning,
     fontWeight: '500'
+  },
+  cameraButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  cameraButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF'
   },
   newChatButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -699,12 +603,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: WhatsAppColors.background
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8E8E93'
+    color: WhatsAppColors.lightText
   },
   emptyState: {
     flex: 1,
@@ -715,12 +619,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
+    color: WhatsAppColors.text,
     marginBottom: 8
   },
   emptyStateSubtitle: {
     fontSize: 16,
-    color: '#8E8E93',
+    color: WhatsAppColors.lightText,
     textAlign: 'center'
   },
   conversationsList: {
@@ -731,7 +635,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
+    borderBottomColor: WhatsAppColors.border,
+    backgroundColor: WhatsAppColors.background
   },
   avatarContainer: {
     marginRight: 12,
@@ -741,7 +646,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#007AFF',
+    backgroundColor: WhatsAppColors.secondary,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -749,6 +654,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold'
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25
   },
   conversationContent: {
     flex: 1,
@@ -763,22 +673,22 @@ const styles = StyleSheet.create({
   conversationTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: WhatsAppColors.text,
     flex: 1
   },
   timestamp: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: WhatsAppColors.lightText,
     marginLeft: 8
   },
   conversationSubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: WhatsAppColors.lightText,
     lineHeight: 18
   },
   unreadMessage: {
     fontWeight: 'bold',
-    color: '#000000'
+    color: WhatsAppColors.text
   },
   onlineIndicator: {
     position: 'absolute',
@@ -787,165 +697,20 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#34C759',
+    backgroundColor: WhatsAppColors.online,
     borderWidth: 2,
     borderColor: '#FFFFFF'
   },
   presenceStatus: {
     fontSize: 12,
-    color: '#34C759',
+    color: WhatsAppColors.online,
     marginTop: 2,
     fontWeight: '500'
   },
   statusMessage: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: WhatsAppColors.lightText,
     marginTop: 2,
     fontStyle: 'italic'
-  },
-  statusButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
-  },
-  statusButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  contactsButton: {
-    backgroundColor: '#FF9500',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
-  },
-  contactsButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  profileButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
-  },
-  profileButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%'
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E7'
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000'
-  },
-  modalCloseButton: {
-    padding: 4
-  },
-  modalCloseButtonText: {
-    fontSize: 18,
-    color: '#8E8E93'
-  },
-  modalBody: {
-    padding: 20
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 16
-  },
-  statusInputContainer: {
-    borderWidth: 1,
-    borderColor: '#E5E5E7',
-    borderRadius: 12,
-    backgroundColor: '#F8F9FA'
-  },
-  statusInput: {
-    padding: 16,
-    fontSize: 16,
-    color: '#000000',
-    minHeight: 100,
-    maxHeight: 120
-  },
-  statusFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E7'
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#8E8E93'
-  },
-  clearButton: {
-    padding: 4
-  },
-  clearButtonText: {
-    fontSize: 14,
-    color: '#FF3B30',
-    fontWeight: '500'
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5E7'
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center'
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#8E8E93'
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600'
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center'
-  },
-  cancelButtonText: {
-    color: '#8E8E93',
-    fontSize: 16,
-    fontWeight: '500'
   }
 })

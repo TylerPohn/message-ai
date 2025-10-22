@@ -346,6 +346,60 @@ export class ImageService {
     }
   }
 
+  // Upload avatar to Firebase Storage
+  static async uploadAvatar(
+    imageUri: string,
+    userId: string,
+    onProgress?: (progress: number) => void
+  ): Promise<string> {
+    try {
+      console.log('Starting avatar upload:', { imageUri, userId })
+
+      // Compress and crop avatar to 400x400 with 1:1 aspect ratio
+      const compressedAvatar = await this.compressImage(imageUri, 400, 400, 0.9)
+
+      // Read the file as blob
+      const response = await fetch(compressedAvatar.uri)
+      const blob = await response.blob()
+      console.log('Avatar blob created:', { size: blob.size, type: blob.type })
+
+      // Create storage reference for avatar
+      const storageRef = ref(storage, `avatars/${userId}/avatar.jpg`)
+      console.log('Avatar storage reference created:', storageRef.fullPath)
+
+      // Upload with progress tracking
+      const uploadTask = uploadBytesResumable(storageRef, blob)
+
+      return new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot: UploadTaskSnapshot) => {
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+            onProgress?.(progress)
+          },
+          (error) => {
+            console.error('Avatar upload error:', error)
+            reject(error)
+          },
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
+              console.log('Avatar upload successful:', downloadURL)
+              resolve(downloadURL)
+            } catch (error) {
+              console.error('Error getting avatar download URL:', error)
+              reject(error)
+            }
+          }
+        )
+      })
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      throw error
+    }
+  }
+
   // Clean up local files
   static async cleanupLocalFiles(uris: string[]): Promise<void> {
     try {

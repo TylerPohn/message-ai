@@ -1,5 +1,3 @@
-import { ThemedText } from '@/components/themed-text'
-import { ThemedView } from '@/components/themed-view'
 import { useAuth } from '@/contexts/AuthContext'
 import { Link, router } from 'expo-router'
 import React, { useState } from 'react'
@@ -42,7 +40,7 @@ export default function SignupScreen() {
     setLoading(true)
     try {
       await signUp(email, password, displayName)
-      router.replace('/chat/')
+      router.replace('/(tabs)')
     } catch (error: any) {
       Alert.alert(
         'Signup Failed',
@@ -59,14 +57,10 @@ export default function SignupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <ThemedView style={styles.formContainer}>
-          <ThemedText type='title' style={styles.title}>
-            Create Account
-          </ThemedText>
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Create Account</Text>
 
-          <ThemedText style={styles.subtitle}>
-            Join MessageAI and start chatting
-          </ThemedText>
+          <Text style={styles.subtitle}>Join MessageAI and start chatting</Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Display Name</Text>
@@ -131,16 +125,14 @@ export default function SignupScreen() {
           </TouchableOpacity>
 
           <View style={styles.linkContainer}>
-            <ThemedText style={styles.linkText}>
-              Already have an account?{' '}
-            </ThemedText>
+            <Text style={styles.linkText}>Already have an account? </Text>
             <Link href='/auth/login' asChild>
               <TouchableOpacity>
                 <Text style={styles.link}>Sign In</Text>
               </TouchableOpacity>
             </Link>
           </View>
-        </ThemedView>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
