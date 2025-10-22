@@ -27,11 +27,18 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [messages, setMessages] = useState<Message[]>([])
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messageText, setMessageText] = useState('')
@@ -99,11 +106,17 @@ export default function ChatScreen() {
           translationResult.translatedText ||
           translationResult.message
 
+        // Extract the detected source language from the response
+        const detectedSourceLang =
+          translationResult.source_lang_detected ||
+          translationResult.sourceLangDetected ||
+          t(locale, 'chat.autoDetectedLanguage')
+
         // Update message with translation
         await MessagingService.updateMessageTranslation(
           message.id,
           translatedTextString,
-          'auto-detected', // We don't know the source language anymore
+          detectedSourceLang,
           userProfile.preferredLanguage
         )
 
@@ -519,7 +532,7 @@ export default function ChatScreen() {
         id,
         user.uid,
         userProfile.displayName,
-        '📷 Photo',
+        t(locale, 'chat.photoIndicator'),
         'image',
         uploadResult.imageURL,
         uploadResult.thumbnailURL,
@@ -656,10 +669,9 @@ export default function ChatScreen() {
   }
 
   const formatMessageTime = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    const hours = String(timestamp.getHours()).padStart(2, '0')
+    const minutes = String(timestamp.getMinutes()).padStart(2, '0')
+    return `${hours}:${minutes}`
   }
 
   // Toggle between original and translated text
@@ -821,8 +833,8 @@ export default function ChatScreen() {
                 <View style={styles.translationIndicator}>
                   <Text style={styles.translationText}>
                     {showOriginalText.get(item.id) === true
-                      ? 'Tap to show translation'
-                      : `Translated from ${item.detectedLanguage?.toUpperCase()}`}
+                      ? t(locale, 'chat.translationToggleHint')
+                      : t(locale, 'chat.translationInfo', { lang: item.detectedLanguage?.toUpperCase() })}
                   </Text>
                 </View>
               )}
@@ -832,7 +844,7 @@ export default function ChatScreen() {
                 <View style={styles.translationLoading}>
                   <ActivityIndicator size='small' color='#00A884' />
                   <Text style={styles.translationLoadingText}>
-                    Translating...
+                    {t(locale, 'chat.translatingText')}
                   </Text>
                 </View>
               )}
@@ -864,7 +876,7 @@ export default function ChatScreen() {
             item.status === 'read' &&
             otherUserMembership &&
             otherUserMembership.lastReadMessageId === item.id && (
-              <Text style={styles.seenIndicator}>Seen</Text>
+              <Text style={styles.seenIndicator}>{t(locale, 'chat.seenStatus')}</Text>
             )}
         </View>
       </View>
@@ -985,7 +997,7 @@ export default function ChatScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size='large' color='#00A884' />
-        <Text style={styles.loadingText}>Loading messages...</Text>
+        <Text style={styles.loadingText}>{t(locale, 'chat.loadingText')}</Text>
       </View>
     )
   }
@@ -1014,10 +1026,19 @@ export default function ChatScreen() {
             {presenceData && (
               <Text style={styles.presenceStatus}>
                 {presenceData.status === 'online'
-                  ? 'Online'
-                  : `Last seen ${PresenceService.formatLastSeen(
-                      presenceData.lastSeen
-                    )}`}
+                  ? t(locale, 'chat.onlineStatus')
+                  : (() => {
+                      const timeData = PresenceService.formatLastSeen(presenceData.lastSeen)
+                      if (timeData === 'now') {
+                        return t(locale, 'chat.onlineStatus')
+                      }
+                      const keyMap = {
+                        minutes: 'chat.minutesAgoFormat',
+                        hours: 'chat.hoursAgoFormat',
+                        days: 'chat.daysAgoFormat'
+                      }
+                      return t(locale, keyMap[timeData.unit], { time: timeData.value })
+                    })()}
               </Text>
             )}
             {getOtherUserStatus() && (
@@ -1138,7 +1159,7 @@ export default function ChatScreen() {
             style={styles.textInput}
             value={messageText}
             onChangeText={handleTextChange}
-            placeholder='Type a message...'
+            placeholder={t(locale, 'chat.messageInputPlaceholder')}
             placeholderTextColor='#8696A0'
             multiline
             maxLength={1000}
@@ -1152,7 +1173,7 @@ export default function ChatScreen() {
             disabled={!messageText.trim() || sending}
           >
             <Text style={styles.sendButtonText}>
-              {sending ? '...' : 'Send'}
+              {sending ? t(locale, 'chat.sendingIndicator') : t(locale, 'chat.sendButton')}
             </Text>
           </TouchableOpacity>
         </View>

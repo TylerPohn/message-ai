@@ -225,25 +225,26 @@ export class PresenceService {
   }
 
   // Format last seen timestamp for display
-  static formatLastSeen(lastSeen: number): string {
+  // Returns: { value: number, unit: 'minutes' | 'hours' | 'days' } or null for "now"
+  static formatLastSeen(lastSeen: number): { value: number; unit: 'minutes' | 'hours' | 'days' } | 'now' {
     const now = Date.now()
     const diff = now - lastSeen
 
     if (diff < 60000) {
-      // Less than 1 minute
-      return 'Just now'
+      // Less than 1 minute - return "now" to be handled by translation
+      return 'now'
     } else if (diff < 3600000) {
-      // Less than 1 hour
+      // Less than 1 hour - return minutes value only
       const minutes = Math.floor(diff / 60000)
-      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+      return { value: minutes, unit: 'minutes' }
     } else if (diff < 86400000) {
-      // Less than 1 day
+      // Less than 1 day - return hours value only
       const hours = Math.floor(diff / 3600000)
-      return `${hours} hour${hours === 1 ? '' : 's'} ago`
+      return { value: hours, unit: 'hours' }
     } else {
-      // More than 1 day
+      // More than 1 day - return days value only
       const days = Math.floor(diff / 86400000)
-      return `${days} day${days === 1 ? '' : 's'} ago`
+      return { value: days, unit: 'days' }
     }
   }
 }

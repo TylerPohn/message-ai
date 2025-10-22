@@ -15,15 +15,42 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 interface LanguageOption {
   code: LanguageCode
   name: string
 }
 
+// Language names in their native form (for display in dropdown)
+const LANGUAGE_NAMES_NATIVE: Record<LanguageCode, string> = {
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  it: 'Italiano',
+  pt: 'Português',
+  ru: 'Русский',
+  uk: 'Українська',
+  ja: '日本語',
+  ko: '한국어',
+  zh: '中文',
+  ar: 'العربية',
+  hi: 'हिन्दी',
+  th: 'ไทย',
+  vi: 'Tiếng Việt',
+  nl: 'Nederlands'
+}
+
 export default function LanguageSettingsScreen() {
   const { user, userProfile, updateUserProfile } = useAuth()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en')
   const [autoTranslate, setAutoTranslate] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
@@ -39,9 +66,9 @@ export default function LanguageSettingsScreen() {
 
   const languageOptions: LanguageOption[] = Object.entries(
     SUPPORTED_LANGUAGES
-  ).map(([code, name]) => ({
+  ).map(([code]) => ({
     code: code as LanguageCode,
-    name
+    name: LANGUAGE_NAMES_NATIVE[code as LanguageCode]
   }))
 
   const handleSavePreferences = async () => {
@@ -61,11 +88,11 @@ export default function LanguageSettingsScreen() {
         autoTranslate: autoTranslate
       })
 
-      Alert.alert('Success', 'Language preferences saved successfully!')
+      Alert.alert(t(locale, 'common.ok'), t(locale, 'languageSettings.successMessage'))
       router.back()
     } catch (error) {
       console.error('Error saving language preferences:', error)
-      Alert.alert('Error', 'Failed to save preferences. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'languageSettings.errorMessage'))
     } finally {
       setLoading(false)
     }
@@ -97,7 +124,7 @@ export default function LanguageSettingsScreen() {
   )
 
   const getCurrentLanguageName = () => {
-    return SUPPORTED_LANGUAGES[selectedLanguage as LanguageCode] || 'English'
+    return LANGUAGE_NAMES_NATIVE[selectedLanguage as LanguageCode] || 'English'
   }
 
   return (
@@ -109,14 +136,14 @@ export default function LanguageSettingsScreen() {
         >
           <Ionicons name='arrow-back' size={24} color='#FFFFFF' />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Language</Text>
+        <Text style={styles.headerTitle}>{t(locale, 'languageSettings.headerTitle')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.content}>
         {/* Language Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferred Language</Text>
+          <Text style={styles.sectionTitle}>{t(locale, 'languageSettings.preferredLanguageSection')}</Text>
           <TouchableOpacity
             style={styles.languageSelector}
             onPress={() => setShowLanguagePicker(true)}
@@ -136,10 +163,9 @@ export default function LanguageSettingsScreen() {
         <View style={styles.section}>
           <View style={styles.toggleContainer}>
             <View style={styles.toggleInfo}>
-              <Text style={styles.toggleTitle}>Auto-Translate Messages</Text>
+              <Text style={styles.toggleTitle}>{t(locale, 'languageSettings.autoTranslateTitle')}</Text>
               <Text style={styles.toggleSubtitle}>
-                Automatically translate incoming messages to your preferred
-                language
+                {t(locale, 'languageSettings.autoTranslateSubtitle')}
               </Text>
             </View>
             <Switch
@@ -158,7 +184,7 @@ export default function LanguageSettingsScreen() {
           disabled={loading}
         >
           <Text style={styles.saveButtonText}>
-            {loading ? 'Saving...' : 'Save Preferences'}
+            {loading ? t(locale, 'languageSettings.savingButton') : t(locale, 'languageSettings.saveButton')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -173,7 +199,7 @@ export default function LanguageSettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Language</Text>
+              <Text style={styles.modalTitle}>{t(locale, 'languageSettings.selectLanguageTitle')}</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowLanguagePicker(false)}
@@ -340,14 +366,14 @@ const styles = StyleSheet.create({
     borderBottomColor: WhatsAppColors.border
   },
   selectedLanguageOption: {
-    backgroundColor: WhatsAppColors.primary + '20'
+    backgroundColor: WhatsAppColors.secondary + '20'
   },
   languageOptionText: {
     fontSize: 16,
     color: WhatsAppColors.text
   },
   selectedLanguageOptionText: {
-    color: WhatsAppColors.primary,
-    fontWeight: '600'
+    color: WhatsAppColors.secondary,
+    fontWeight: '700'
   }
 })

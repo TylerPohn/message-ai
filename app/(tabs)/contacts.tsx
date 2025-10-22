@@ -23,6 +23,7 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 export default function ContactsScreen() {
   const {
@@ -32,6 +33,12 @@ export default function ContactsScreen() {
     updateUserProfile
   } = useAuth()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [contacts, setContacts] = useState<UserProfile[]>([])
   const [filteredContacts, setFilteredContacts] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -153,10 +160,10 @@ export default function ContactsScreen() {
       })
       setStatusModalVisible(false)
       setStatusText('')
-      Alert.alert('Success', 'Status updated successfully!')
+      Alert.alert(t(locale, 'common.ok'), t(locale, 'contacts.statusUpdateSuccessMessage'))
     } catch (error) {
       console.error('Error updating status:', error)
-      Alert.alert('Error', 'Failed to update status. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'contacts.statusUpdateErrorMessage'))
     } finally {
       setStatusLoading(false)
     }
@@ -190,10 +197,10 @@ export default function ContactsScreen() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return 'Online'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    if (days < 7) return `${days}d ago`
+    if (minutes < 1) return t(locale, 'contacts.onlineIndicator')
+    if (minutes < 60) return t(locale, 'contacts.minutesAgoFormat', { time: minutes })
+    if (hours < 24) return t(locale, 'contacts.hoursAgoFormat', { time: hours })
+    if (days < 7) return t(locale, 'contacts.daysAgoFormat', { time: days })
     return lastSeen.toLocaleDateString()
   }
 
@@ -201,9 +208,18 @@ export default function ContactsScreen() {
     const presence = presenceData.get(contact.uid)
     if (presence) {
       if (presence.status === 'online') {
-        return 'Online'
+        return t(locale, 'contacts.onlineIndicator')
       } else {
-        return `Last seen ${PresenceService.formatLastSeen(presence.lastSeen)}`
+        const timeData = PresenceService.formatLastSeen(presence.lastSeen)
+        if (timeData === 'now') {
+          return t(locale, 'contacts.onlineIndicator')
+        }
+        const keyMap = {
+          minutes: 'contacts.minutesAgoFormat',
+          hours: 'contacts.hoursAgoFormat',
+          days: 'contacts.daysAgoFormat'
+        }
+        return t(locale, keyMap[timeData.unit], { time: timeData.value })
       }
     }
     return formatLastSeen(contact.lastSeen)
@@ -235,7 +251,7 @@ export default function ContactsScreen() {
       router.push(`/chat/${conversationId}`)
     } catch (error) {
       console.error('Error creating conversation:', error)
-      Alert.alert('Error', 'Failed to start conversation')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'contacts.conversationError'))
     }
   }
 
@@ -243,20 +259,20 @@ export default function ContactsScreen() {
     if (!user) return
 
     Alert.alert(
-      'Remove Contact',
-      `Remove ${contact.displayName} from your contacts?`,
+      t(locale, 'contacts.removeContactTitle'),
+      t(locale, 'contacts.removeContactConfirmation', { name: contact.displayName }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t(locale, 'contacts.cancelButton'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t(locale, 'contacts.removeButton'),
           style: 'destructive',
           onPress: async () => {
             try {
               await ContactsService.removeContact(user.uid, contact.uid)
-              Alert.alert('Success', 'Contact removed')
+              Alert.alert(t(locale, 'common.ok'), t(locale, 'contacts.contactRemovedMessage'))
             } catch (error) {
               console.error('Error removing contact:', error)
-              Alert.alert('Error', 'Failed to remove contact')
+              Alert.alert(t(locale, 'common.error'), t(locale, 'contacts.removeContactError'))
             }
           }
         }
@@ -279,10 +295,10 @@ export default function ContactsScreen() {
         </View>
         <View style={styles.statusContent}>
           <Text style={styles.statusTitle}>
-            {hasStatus ? userProfile.status : 'Add status'}
+            {hasStatus ? userProfile.status : t(locale, 'contacts.addStatusDisplay')}
           </Text>
           <Text style={styles.statusSubtitle}>
-            {hasStatus ? 'Tap to edit' : 'Tap to add status'}
+            {hasStatus ? t(locale, 'contacts.tapToEdit') : t(locale, 'contacts.tapToAddStatus')}
           </Text>
         </View>
       </TouchableOpacity>
@@ -348,7 +364,7 @@ export default function ContactsScreen() {
               style={styles.removeButton}
               onPress={() => handleRemoveContact(item)}
             >
-              <Text style={styles.removeButtonText}>Remove</Text>
+              <Text style={styles.removeButtonText}>{t(locale, 'contacts.removeButton')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -366,7 +382,7 @@ export default function ContactsScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size='large' color={WhatsAppColors.secondary} />
-        <Text style={styles.loadingText}>Loading contacts...</Text>
+        <Text style={styles.loadingText}>{t(locale, 'contacts.loadingText')}</Text>
       </View>
     )
   }
@@ -374,17 +390,17 @@ export default function ContactsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Contacts</Text>
+        <Text style={styles.headerTitle}>{t(locale, 'contacts.headerTitle')}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.searchButton}
-            onPress={() => Alert.alert('Search', 'Search feature coming soon!')}
+            onPress={() => Alert.alert(t(locale, 'contacts.searchAlertTitle'), t(locale, 'contacts.searchAlertMessage'))}
           >
             <Ionicons name='search-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => Alert.alert('Menu', 'Menu feature coming soon!')}
+            onPress={() => Alert.alert(t(locale, 'contacts.menuAlertTitle'), t(locale, 'contacts.menuAlertMessage'))}
           >
             <Ionicons name='ellipsis-vertical' size={20} color='#FFFFFF' />
           </TouchableOpacity>
@@ -406,7 +422,7 @@ export default function ContactsScreen() {
               activeTab === 'contacts' && styles.tabButtonTextActive
             ]}
           >
-            Contacts
+            {t(locale, 'contacts.contactsTabLabel')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -422,7 +438,7 @@ export default function ContactsScreen() {
               activeTab === 'status' && styles.tabButtonTextActive
             ]}
           >
-            Status
+            {t(locale, 'contacts.statusTabLabel')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -433,7 +449,7 @@ export default function ContactsScreen() {
             <View style={styles.searchContainer}>
               <TextInput
                 style={styles.searchInput}
-                placeholder='Search contacts...'
+                placeholder={t(locale, 'contacts.searchPlaceholder')}
                 value={searchTerm}
                 onChangeText={setSearchTerm}
                 autoCapitalize='none'
@@ -445,12 +461,12 @@ export default function ContactsScreen() {
             {filteredContacts.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateTitle}>
-                  {searchTerm ? 'No contacts found' : 'No contacts yet'}
+                  {searchTerm ? t(locale, 'contacts.noContactsFoundTitle') : t(locale, 'contacts.emptyStateTitle')}
                 </Text>
                 <Text style={styles.emptyStateSubtitle}>
                   {searchTerm
-                    ? 'Try a different search term'
-                    : 'Add contacts from the new conversation screen'}
+                    ? t(locale, 'contacts.noContactsFoundSubtitle')
+                    : t(locale, 'contacts.emptyStateSubtitle')}
                 </Text>
               </View>
             ) : (
@@ -465,7 +481,7 @@ export default function ContactsScreen() {
         ) : (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Status</Text>
+              <Text style={styles.sectionTitle}>{t(locale, 'contacts.statusSectionTitle')}</Text>
               {renderMyStatus()}
             </View>
 
@@ -482,7 +498,7 @@ export default function ContactsScreen() {
 
               return contactsWithStatus.length > 0 ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Recent Updates</Text>
+                  <Text style={styles.sectionTitle}>{t(locale, 'contacts.recentUpdatesTitle')}</Text>
                   <FlatList
                     data={contactsWithStatus}
                     keyExtractor={(item) => item.uid}
@@ -492,10 +508,9 @@ export default function ContactsScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateTitle}>No recent updates</Text>
+                  <Text style={styles.emptyStateTitle}>{t(locale, 'contacts.noRecentUpdates')}</Text>
                   <Text style={styles.emptyStateSubtitle}>
-                    When your contacts share status updates, they will appear
-                    here
+                    {t(locale, 'contacts.statusEmptyStateSubtitle')}
                   </Text>
                 </View>
               )
@@ -520,7 +535,7 @@ export default function ContactsScreen() {
               <TouchableWithoutFeedback onPress={() => {}}>
                 <View style={styles.modalContent}>
                   <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Add Status</Text>
+                    <Text style={styles.modalTitle}>{t(locale, 'contacts.addStatusTitle')}</Text>
                     <TouchableOpacity
                       style={styles.modalCloseButton}
                       onPress={() => setStatusModalVisible(false)}
@@ -539,7 +554,7 @@ export default function ContactsScreen() {
                     showsVerticalScrollIndicator={false}
                   >
                     <Text style={styles.modalDescription}>
-                      Share what is on your mind
+                      {t(locale, 'contacts.addStatusDescription')}
                     </Text>
 
                     <View style={styles.statusInputContainer}>
@@ -547,7 +562,7 @@ export default function ContactsScreen() {
                         style={styles.statusInput}
                         value={statusText}
                         onChangeText={setStatusText}
-                        placeholder="What's happening?"
+                        placeholder={t(locale, 'contacts.statusInputPlaceholder')}
                         placeholderTextColor={WhatsAppColors.lightText}
                         multiline
                         maxLength={140}
@@ -557,7 +572,7 @@ export default function ContactsScreen() {
                       />
                       <View style={styles.statusFooter}>
                         <Text style={styles.characterCount}>
-                          {statusText.length}/140
+                          {t(locale, 'contacts.characterCounter', { count: statusText.length })}
                         </Text>
                       </View>
                     </View>
@@ -575,7 +590,7 @@ export default function ContactsScreen() {
                       {statusLoading ? (
                         <ActivityIndicator size='small' color='#FFFFFF' />
                       ) : (
-                        <Text style={styles.saveButtonText}>Post</Text>
+                        <Text style={styles.saveButtonText}>{t(locale, 'contacts.postButton')}</Text>
                       )}
                     </TouchableOpacity>
 
@@ -584,7 +599,7 @@ export default function ContactsScreen() {
                       onPress={() => setStatusModalVisible(false)}
                       disabled={statusLoading}
                     >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                      <Text style={styles.cancelButtonText}>{t(locale, 'contacts.cancelButton')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

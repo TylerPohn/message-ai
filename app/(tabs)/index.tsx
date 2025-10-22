@@ -23,11 +23,18 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 export default function ChatsScreen() {
   const { user, userProfile, logout } = useAuth()
   const { showBanner } = useNotifications()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [userProfiles, setUserProfiles] = useState<Map<string, UserProfile>>(
@@ -318,10 +325,10 @@ export default function ChatsScreen() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return 'now'
-    if (minutes < 60) return `${minutes}m`
-    if (hours < 24) return `${hours}h`
-    if (days < 7) return `${days}d`
+    if (minutes < 1) return t(locale, 'chats.nowIndicator')
+    if (minutes < 60) return t(locale, 'chats.minutesAgoFormat', { time: minutes })
+    if (hours < 24) return t(locale, 'chats.hoursAgoFormat', { time: hours })
+    if (days < 7) return t(locale, 'chats.daysAgoFormat', { time: days })
     return timestamp.toLocaleDateString()
   }
 
@@ -367,9 +374,9 @@ export default function ChatsScreen() {
       // Handle image messages
       if (conversation.lastMessage.type === 'image') {
         if (conversation.type === 'group') {
-          return `${conversation.lastMessage.senderName}: 📷 Photo`
+          return `${conversation.lastMessage.senderName}: ${t(locale, 'chats.photoIndicator')}`
         }
-        return '📷 Photo'
+        return t(locale, 'chats.photoIndicator')
       }
 
       // For group messages, show sender name
@@ -379,7 +386,7 @@ export default function ChatsScreen() {
       // For direct messages, just show the message text
       return conversation.lastMessage.text
     }
-    return 'No messages yet'
+    return t(locale, 'chats.noMessagesYet')
   }
 
   const getPresenceStatus = (conversation: Conversation) => {
@@ -391,11 +398,18 @@ export default function ChatsScreen() {
         const presence = presenceData.get(otherParticipant)
         if (presence) {
           if (presence.status === 'online') {
-            return 'Online'
+            return t(locale, 'chats.onlineStatus')
           } else {
-            return `Last seen ${PresenceService.formatLastSeen(
-              presence.lastSeen
-            )}`
+            const timeData = PresenceService.formatLastSeen(presence.lastSeen)
+            if (timeData === 'now') {
+              return t(locale, 'chats.onlineStatus')
+            }
+            const keyMap = {
+              minutes: 'chats.minutesAgoFormat',
+              hours: 'chats.hoursAgoFormat',
+              days: 'chats.daysAgoFormat'
+            }
+            return t(locale, keyMap[timeData.unit], { time: timeData.value })
           }
         }
       }
@@ -535,7 +549,7 @@ export default function ChatsScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size='large' color={WhatsAppColors.secondary} />
-        <Text style={styles.loadingText}>Loading conversations...</Text>
+        <Text style={styles.loadingText}>{t(locale, 'chats.loadingText')}</Text>
       </View>
     )
   }
@@ -544,7 +558,7 @@ export default function ChatsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>MessageAI</Text>
+          <Text style={styles.headerTitle}>{t(locale, 'chats.headerTitle')}</Text>
           {!networkState.isOnline && (
             <Text
               style={[
@@ -567,7 +581,7 @@ export default function ChatsScreen() {
             style={styles.cameraButton}
             onPress={() => {
               // Camera functionality placeholder
-              Alert.alert('Camera', 'Camera feature coming soon!')
+              Alert.alert(t(locale, 'chats.cameraAlertTitle'), t(locale, 'chats.cameraAlertMessage'))
             }}
           >
             <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
@@ -589,9 +603,9 @@ export default function ChatsScreen() {
 
       {conversations.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateTitle}>No conversations yet</Text>
+          <Text style={styles.emptyStateTitle}>{t(locale, 'chats.emptyStateTitle')}</Text>
           <Text style={styles.emptyStateSubtitle}>
-            Use the &quot;+&quot; button to start new conversations
+            {t(locale, 'chats.emptyStateSubtitle')}
           </Text>
         </View>
       ) : (

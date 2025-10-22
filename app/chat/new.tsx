@@ -16,10 +16,17 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 export default function NewConversationScreen() {
   const { user, userProfile, loading: authLoading } = useAuth()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([])
   const [contacts, setContacts] = useState<UserProfile[]>([])
   const [filteredContacts, setFilteredContacts] = useState<UserProfile[]>([])
@@ -64,7 +71,7 @@ export default function NewConversationScreen() {
         setContactStatuses(statusMap)
       } catch (error) {
         console.error('Error loading users and contacts:', error)
-        Alert.alert('Error', 'Failed to load users')
+        Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.loadUsersError'))
       } finally {
         setLoading(false)
       }
@@ -104,7 +111,7 @@ export default function NewConversationScreen() {
 
   const handleUserSelect = async (selectedUser: UserProfile) => {
     if (!user || !userProfile) {
-      Alert.alert('Error', 'User not authenticated')
+      Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.userAuthError'))
       return
     }
 
@@ -155,10 +162,10 @@ export default function NewConversationScreen() {
     } catch (error) {
       console.error('Error creating conversation:', error)
       Alert.alert(
-        'Error',
-        `Failed to create conversation: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+        t(locale, 'newConversation.errorTitle'),
+        t(locale, 'newConversation.conversationCreationError', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       )
     } finally {
       setCreating(false)
@@ -171,10 +178,10 @@ export default function NewConversationScreen() {
     try {
       await ContactsService.addContact(user.uid, userProfile.uid, 'manual')
       setContactStatuses((prev) => new Map(prev).set(userProfile.uid, true))
-      Alert.alert('Success', `${userProfile.displayName} added to contacts`)
+      Alert.alert(t(locale, 'newConversation.successTitle'), t(locale, 'newConversation.contactAddedMessage', { name: userProfile.displayName }))
     } catch (error) {
       console.error('Error adding contact:', error)
-      Alert.alert('Error', 'Failed to add contact')
+      Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.loadUsersError'))
     }
   }
 
@@ -184,21 +191,21 @@ export default function NewConversationScreen() {
     try {
       await ContactsService.removeContact(user.uid, userProfile.uid)
       setContactStatuses((prev) => new Map(prev).set(userProfile.uid, false))
-      Alert.alert('Success', `${userProfile.displayName} removed from contacts`)
+      Alert.alert(t(locale, 'newConversation.successTitle'), t(locale, 'newConversation.contactRemovedMessage', { name: userProfile.displayName }))
     } catch (error) {
       console.error('Error removing contact:', error)
-      Alert.alert('Error', 'Failed to remove contact')
+      Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.loadUsersError'))
     }
   }
 
   const handleCreateGroup = async () => {
     if (selectedUsers.length < 2) {
-      Alert.alert('Error', 'Please select at least 2 people to create a group')
+      Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.groupSizeValidationError'))
       return
     }
 
     if (!user || !userProfile) {
-      Alert.alert('Error', 'User not authenticated')
+      Alert.alert(t(locale, 'newConversation.errorTitle'), t(locale, 'newConversation.userAuthError'))
       return
     }
 
@@ -229,10 +236,10 @@ export default function NewConversationScreen() {
     } catch (error) {
       console.error('Error creating group:', error)
       Alert.alert(
-        'Error',
-        `Failed to create group: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+        t(locale, 'newConversation.errorTitle'),
+        t(locale, 'newConversation.groupCreationError', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       )
     } finally {
       setCreating(false)
@@ -248,10 +255,10 @@ export default function NewConversationScreen() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return 'Online'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    if (days < 7) return `${days}d ago`
+    if (minutes < 1) return t(locale, 'newConversation.onlineStatus')
+    if (minutes < 60) return t(locale, 'newConversation.minutesAgoFormat', { time: minutes })
+    if (hours < 24) return t(locale, 'newConversation.hoursAgoFormat', { time: hours })
+    if (days < 7) return t(locale, 'newConversation.daysAgoFormat', { time: days })
     return lastSeen.toLocaleDateString()
   }
 
@@ -344,7 +351,7 @@ export default function NewConversationScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size='large' color='#00A884' />
-        <Text style={styles.loadingText}>Loading users...</Text>
+        <Text style={styles.loadingText}>{t(locale, 'newConversation.loadingText')}</Text>
       </View>
     )
   }
@@ -356,10 +363,10 @@ export default function NewConversationScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>Cancel</Text>
+          <Text style={styles.backButtonText}>{t(locale, 'newConversation.backButton')}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {isGroupMode ? 'New Group' : 'New Message'}
+          {isGroupMode ? t(locale, 'newConversation.groupTitle') : t(locale, 'newConversation.directTitle')}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -378,7 +385,7 @@ export default function NewConversationScreen() {
               !isGroupMode && styles.modeToggleTextActive
             ]}
           >
-            Direct
+            {t(locale, 'newConversation.directMode')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -391,7 +398,7 @@ export default function NewConversationScreen() {
               isGroupMode && styles.modeToggleTextActive
             ]}
           >
-            Group
+            {t(locale, 'newConversation.groupMode')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -399,14 +406,14 @@ export default function NewConversationScreen() {
       {isGroupMode && selectedUsers.length > 0 && (
         <View style={styles.selectedUsersContainer}>
           <Text style={styles.selectedUsersText}>
-            {selectedUsers.length} selected
+            {t(locale, 'newConversation.selectionCounter', { count: selectedUsers.length })}
           </Text>
           {selectedUsers.length >= 2 && (
             <TouchableOpacity
               style={styles.createGroupButton}
               onPress={handleCreateGroup}
             >
-              <Text style={styles.createGroupButtonText}>Create Group</Text>
+              <Text style={styles.createGroupButtonText}>{t(locale, 'newConversation.createGroupButton')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -415,7 +422,7 @@ export default function NewConversationScreen() {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder='Search users...'
+          placeholder={t(locale, 'newConversation.searchPlaceholder')}
           placeholderTextColor='#8696A0'
           value={searchTerm}
           onChangeText={setSearchTerm}
@@ -427,7 +434,7 @@ export default function NewConversationScreen() {
       {filteredContacts.length > 0 && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeader}>
-            Contacts ({filteredContacts.length})
+            {t(locale, 'newConversation.contactsHeader', { count: filteredContacts.length })}
           </Text>
           <FlatList
             data={filteredContacts}
@@ -441,17 +448,17 @@ export default function NewConversationScreen() {
 
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionHeader}>
-          All Users ({filteredUsers.length})
+          {t(locale, 'newConversation.allUsersHeader', { count: filteredUsers.length })}
         </Text>
         {filteredUsers.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateTitle}>
-              {searchTerm ? 'No users found' : 'No users available'}
+              {searchTerm ? t(locale, 'newConversation.noUsersFoundTitle') : t(locale, 'newConversation.noUsersAvailableTitle')}
             </Text>
             <Text style={styles.emptyStateSubtitle}>
               {searchTerm
-                ? 'Try a different search term'
-                : 'Other users need to sign up to start conversations'}
+                ? t(locale, 'newConversation.noUsersFoundSubtitle')
+                : t(locale, 'newConversation.noUsersAvailableSubtitle')}
             </Text>
           </View>
         ) : (

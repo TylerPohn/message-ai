@@ -104,6 +104,7 @@ export const SUPPORTED_LANGUAGES = {
   it: 'Italian',
   pt: 'Portuguese',
   ru: 'Russian',
+  uk: 'Ukrainian',
   ja: 'Japanese',
   ko: 'Korean',
   zh: 'Chinese',

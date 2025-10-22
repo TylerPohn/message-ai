@@ -1,9 +1,19 @@
+import { useAuth } from '@/contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
 import React from 'react'
 import { Platform } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 export default function TabLayout() {
+  const { userProfile } = useAuth()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
+
   return (
     <Tabs
       screenOptions={{
@@ -23,7 +33,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name='index'
         options={{
-          title: 'Chats',
+          title: t(locale, 'navigation.chatsTab'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
@@ -36,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name='contacts'
         options={{
-          title: 'Contacts',
+          title: t(locale, 'navigation.contactsTab'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'people' : 'people-outline'}
@@ -49,7 +59,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name='settings'
         options={{
-          title: 'Settings',
+          title: t(locale, 'navigation.settingsTab'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'settings-sharp' : 'settings-outline'}

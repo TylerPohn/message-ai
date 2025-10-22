@@ -1,0 +1,193 @@
+Key,Category,String,File,Line(s),Notes,Type,Requires_Parameters
+auth.loading,Loading,Loading...,app/index.tsx,26,Auth initialization,Loading Indicator,No
+auth.login.title,Authentication,Welcome Back,app/auth/login.tsx,71,Main heading,Title,No
+auth.login.subtitle,Authentication,Sign in to your MessageAI account,app/auth/login.tsx,73,Login description,Subtitle,No
+auth.login.email.label,Authentication,Enter your email,app/auth/login.tsx,78,Email input placeholder,Placeholder,No
+auth.login.password.label,Authentication,Enter your password,app/auth/login.tsx,91,Password input placeholder,Placeholder,No
+auth.login.signingIn,Authentication,Signing In...,app/auth/login.tsx,106,Button text while processing,Button,No
+auth.login.signIn,Authentication,Sign In,app/auth/login.tsx,106,Primary action button,Button,No
+auth.login.error.title,Authentication,Error,app/auth/login.tsx,29,Validation error title,Alert Title,No
+auth.login.error.emptyFields,Authentication,Please fill in all fields,app/auth/login.tsx,29,Empty field validation,Alert Message,No
+auth.login.error.loginFailed,Authentication,Login Failed,app/auth/login.tsx,39,Login failure title,Alert Title,No
+auth.login.error.generic,Authentication,An error occurred during login,app/auth/login.tsx,40,Generic error fallback,Alert Message,No
+auth.login.error.devLoginFailed,Authentication,Dev Login Failed,app/auth/login.tsx,56,Dev mode login failure,Alert Title,No
+auth.login.error.devGeneric,Authentication,An error occurred during dev login,app/auth/login.tsx,57,Dev mode error fallback,Alert Message,No
+auth.login.noAccount,Authentication,Don't have an account?,app/auth/login.tsx,111,Sign up prompt text,Link Text,No
+auth.login.signUp,Authentication,Sign Up,app/auth/login.tsx,114,Sign up link text,Link Text,No
+auth.login.devMode.title,Authentication,Development Mode,app/auth/login.tsx,122,Dev mode section header,Section Title,No
+auth.login.devMode.subtitle,Authentication,Quick login for testing,app/auth/login.tsx,123,Dev mode description,Section Subtitle,No
+auth.login.devMode.tyler,Authentication,Login as Tyler,app/auth/login.tsx,135,Dev test account button,Button,No
+auth.login.devMode.moblin,Authentication,Login as Moblin,app/auth/login.tsx,151,Dev test account button,Button,No
+auth.login.devMode.daihorusu,Authentication,Login as Daihorusu,app/auth/login.tsx,165,Dev test account button,Button,No
+auth.signup.title,Authentication,Create Account,app/auth/signup.tsx,61,Main heading,Title,No
+auth.signup.subtitle,Authentication,Join MessageAI and start chatting,app/auth/signup.tsx,63,Signup description,Subtitle,No
+auth.signup.displayName.label,Authentication,Display Name,app/auth/signup.tsx,66,Form label,Form Label,No
+auth.signup.displayName.placeholder,Authentication,Enter your display name,app/auth/signup.tsx,69,Form field placeholder,Placeholder,No
+auth.signup.email.label,Authentication,Email,app/auth/signup.tsx,78,Form label,Form Label,No
+auth.signup.email.placeholder,Authentication,Enter your email,app/auth/signup.tsx,81,Form field placeholder,Placeholder,No
+auth.signup.password.label,Authentication,Password,app/auth/signup.tsx,92,Form label,Form Label,No
+auth.signup.password.placeholder,Authentication,Enter your password (min 6 characters),app/auth/signup.tsx,95,Form field placeholder with hint,Placeholder,No
+auth.signup.confirmPassword.label,Authentication,Confirm Password,app/auth/signup.tsx,105,Form label,Form Label,No
+auth.signup.confirmPassword.placeholder,Authentication,Confirm your password,app/auth/signup.tsx,108,Form field placeholder,Placeholder,No
+auth.signup.error.emptyFields,Authentication,Please fill in all fields,app/auth/signup.tsx,26,Empty field validation,Alert Message,No
+auth.signup.error.passwordMismatch,Authentication,Passwords do not match,app/auth/signup.tsx,31,Password mismatch error,Alert Message,No
+auth.signup.error.passwordShort,Authentication,Password must be at least 6 characters,app/auth/signup.tsx,36,Password length validation,Alert Message,No
+auth.signup.creatingAccount,Authentication,Creating Account...,app/auth/signup.tsx,123,Button text while processing,Button,No
+auth.signup.create,Authentication,Create Account,app/auth/signup.tsx,123,Primary action button,Button,No
+auth.signup.error.signupFailed,Authentication,Signup Failed,app/auth/signup.tsx,46,Signup failure title,Alert Title,No
+auth.signup.error.generic,Authentication,An error occurred during signup,app/auth/signup.tsx,47,Generic signup error,Alert Message,No
+auth.signup.haveAccount,Authentication,Already have an account?,app/auth/signup.tsx,128,Login prompt text,Link Text,No
+auth.signup.signIn,Authentication,Sign In,app/auth/signup.tsx,131,Login link text,Link Text,No
+nav.tabs.chats,Navigation,Chats,app/(tabs)/_layout.tsx,26,Chat list tab,Tab Title,No
+nav.tabs.contacts,Navigation,Contacts,app/(tabs)/_layout.tsx,39,Contacts tab,Tab Title,No
+nav.tabs.settings,Navigation,Settings,app/(tabs)/_layout.tsx,52,Settings tab,Tab Title,No
+chats.loading,Loading,Loading conversations...,app/(tabs)/index.tsx,538,Initial load indicator,Loading Text,No
+chats.header.title,Chats,MessageAI,app/(tabs)/index.tsx,547,App name in header,Header Title,No
+chats.empty.title,Chats,No conversations yet,app/(tabs)/index.tsx,592,Empty state when no chats,Empty State Title,No
+chats.empty.subtitle,Chats,Use the "+" button to start new conversations,app/(tabs)/index.tsx,593,Empty state instruction,Empty State Subtitle,No
+chats.empty.noMessages,Chats,No messages yet,app/(tabs)/index.tsx,382,Empty conversation message,Subtitle,No
+chats.group.default,Chats,Group Chat,app/(tabs)/index.tsx,341,Default group title,Default,No
+chats.image.label,Chats,📷 Photo,app/(tabs)/index.tsx,370,Image message indicator,Message Label,No
+chats.status.online,Chats,Online,app/(tabs)/index.tsx,394,User online status,Status,No
+chats.status.lastSeen,Chats,Last seen {time},app/(tabs)/index.tsx,396,User last seen,Status,Yes
+chats.unknown,Chats,Unknown,app/(tabs)/index.tsx,337,Unknown user fallback,Fallback,No
+chats.unknownUser,Chats,Unknown User,app/(tabs)/index.tsx,359,Unknown user fallback,Fallback,No
+chats.queue.label,Chats,{count} message{plural} queued,app/(tabs)/index.tsx,560,Offline queue indicator,Status,Yes
+chats.features.camera,Chats,Camera feature coming soon!,app/(tabs)/index.tsx,570,Coming soon feature,Alert,No
+settings.header.title,Settings,Settings,app/(tabs)/settings.tsx,256,Settings page title,Header Title,No
+settings.search.feature,Settings,Search feature coming soon!,app/(tabs)/settings.tsx,260,Coming soon feature,Alert,No
+settings.account.title,Settings,Account,app/(tabs)/settings.tsx,198,Account settings section,Item Title,No
+settings.account.subtitle,Settings,Security notifications change number,app/(tabs)/settings.tsx,199,Account description,Item Subtitle,No
+settings.account.feature,Settings,Account settings coming soon!,app/(tabs)/settings.tsx,201,Coming soon feature,Alert,No
+settings.privacy.title,Settings,Privacy,app/(tabs)/settings.tsx,205,Privacy settings section,Item Title,No
+settings.privacy.subtitle,Settings,Block contacts disappearing messages,app/(tabs)/settings.tsx,206,Privacy description,Item Subtitle,No
+settings.privacy.feature,Settings,Privacy settings coming soon!,app/(tabs)/settings.tsx,208,Coming soon feature,Alert,No
+settings.avatar.title,Settings,Avatar,app/(tabs)/settings.tsx,212,Avatar settings section,Item Title,No
+settings.avatar.subtitle,Settings,Create edit profile photo,app/(tabs)/settings.tsx,213,Avatar description,Item Subtitle,No
+settings.language.title,Settings,Language,app/(tabs)/settings.tsx,219,Language settings section,Item Title,No
+settings.language.subtitle,Settings,Language: {code},app/(tabs)/settings.tsx,221,Current language display,Item Subtitle,Yes
+settings.language.default,Settings,Language preferences,app/(tabs)/settings.tsx,222,Default language description,Item Subtitle,No
+settings.notifications.title,Settings,Notifications,app/(tabs)/settings.tsx,228,Notifications settings section,Item Title,No
+settings.notifications.subtitle,Settings,Message group & call tones,app/(tabs)/settings.tsx,229,Notifications description,Item Subtitle,No
+settings.notifications.feature,Settings,Notification settings coming soon!,app/(tabs)/settings.tsx,232,Coming soon feature,Alert,No
+settings.profile.edit.title,Settings,Edit Profile,app/(tabs)/settings.tsx,342,Profile edit dialog,Modal Title,No
+settings.profile.logout.title,Settings,Sign Out,app/(tabs)/settings.tsx,53,Logout confirmation title,Dialog Title,No
+settings.profile.logout.message,Settings,Are you sure you want to sign out {name}?,app/(tabs)/settings.tsx,54,Logout confirmation message,Dialog Message,Yes
+settings.profile.logout.cancel,Settings,Cancel,app/(tabs)/settings.tsx,56,Cancel logout button,Button,No
+settings.profile.logout.confirm,Settings,Sign Out,app/(tabs)/settings.tsx,58,Confirm logout button,Button,No
+settings.profile.logout.error,Settings,Failed to sign out. Please try again.,app/(tabs)/settings.tsx,65,Logout error message,Alert Message,No
+settings.profile.displayName.label,Settings,Display Name,app/(tabs)/settings.tsx,361,Form label,Form Label,No
+settings.profile.displayName.placeholder,Settings,Enter your name,app/(tabs)/settings.tsx,366,Form placeholder,Placeholder,No
+settings.profile.status.label,Settings,Status,app/(tabs)/settings.tsx,372,Form label,Form Label,No
+settings.profile.status.placeholder,Settings,What's on your mind?,app/(tabs)/settings.tsx,377,Form placeholder,Placeholder,No
+settings.profile.status.counter,Settings,{count}/140,app/(tabs)/settings.tsx,382,Character limit counter,Counter,Yes
+settings.profile.save.saving,Settings,Saving...,app/(tabs)/settings.tsx,397,Save button loading,Button,No
+settings.profile.save.button,Settings,Save,app/(tabs)/settings.tsx,397,Save changes button,Button,No
+settings.profile.cancel,Settings,Cancel,app/(tabs)/settings.tsx,406,Cancel profile edit button,Button,No
+settings.profile.error.displayNameRequired,Settings,Display name is required,app/(tabs)/settings.tsx,81,Validation error,Alert Message,No
+settings.profile.error.updateFailed,Settings,Failed to update profile. Please try again.,app/(tabs)/settings.tsx,95,Update failure,Alert Message,No
+settings.profile.success,Settings,Profile updated successfully!,app/(tabs)/settings.tsx,92,Update success,Alert Message,No
+settings.avatar.actionSheet.title,Settings,Select Avatar,app/(tabs)/settings.tsx,113,Avatar selection title,Action Sheet Title,No
+settings.avatar.option.camera,Settings,Take Photo,app/(tabs)/settings.tsx,105,Camera option,Action Sheet Option,No
+settings.avatar.option.library,Settings,Choose from Library,app/(tabs)/settings.tsx,105,Gallery option,Action Sheet Option,No
+settings.avatar.error.camera,Settings,Failed to take photo. Please try again.,app/(tabs)/settings.tsx,145,Photo capture error,Alert Message,No
+settings.avatar.error.library,Settings,Failed to select image. Please try again.,app/(tabs)/settings.tsx,159,Image selection error,Alert Message,No
+settings.avatar.error.upload,Settings,Failed to upload avatar. Please try again.,app/(tabs)/settings.tsx,188,Avatar upload error,Alert Message,No
+settings.avatar.success,Settings,Avatar updated successfully!,app/(tabs)/settings.tsx,185,Avatar update success,Alert Message,No
+settings.avatar.default.status,Settings,Hey there! I am using MessageAI,app/(tabs)/settings.tsx,300,Default user status,Default Text,No
+settings.profile.unknownUser,Settings,Unknown User,app/(tabs)/settings.tsx,297,User name fallback,Fallback,No
+contacts.header.title,Contacts,Contacts,app/(tabs)/contacts.tsx,377,Contacts page title,Header Title,No
+contacts.search.feature,Contacts,Search feature coming soon!,app/(tabs)/contacts.tsx,381,Coming soon feature,Alert,No
+contacts.menu.feature,Contacts,Menu feature coming soon!,app/(tabs)/contacts.tsx,387,Coming soon feature,Alert,No
+contacts.tab.contacts,Contacts,Contacts,app/(tabs)/contacts.tsx,409,Contacts tab name,Tab Label,No
+contacts.tab.status,Contacts,Status,app/(tabs)/contacts.tsx,425,Status tab name,Tab Label,No
+contacts.search.placeholder,Contacts,Search contacts...,app/(tabs)/contacts.tsx,436,Search input placeholder,Placeholder,No
+contacts.loading,Contacts,Loading contacts...,app/(tabs)/contacts.tsx,369,Initial load indicator,Loading Text,No
+contacts.empty.title,Contacts,No contacts yet,app/(tabs)/contacts.tsx,448,Empty contact list,Empty State Title,No
+contacts.empty.subtitle,Contacts,Add contacts from the new conversation screen,app/(tabs)/contacts.tsx,453,Empty state instruction,Empty State Subtitle,No
+contacts.search.empty.title,Contacts,No contacts found,app/(tabs)/contacts.tsx,448,Search no results,Empty State Title,No
+contacts.search.empty.subtitle,Contacts,Try a different search term,app/(tabs)/contacts.tsx,452,Search help text,Empty State Subtitle,No
+contacts.remove.title,Contacts,Remove Contact,app/(tabs)/contacts.tsx,246,Remove confirmation title,Dialog Title,No
+contacts.remove.message,Contacts,Remove {name} from your contacts?,app/(tabs)/contacts.tsx,247,Contact removal confirmation,Dialog Message,Yes
+contacts.remove.cancel,Contacts,Cancel,app/(tabs)/contacts.tsx,249,Cancel removal button,Button,No
+contacts.remove.confirm,Contacts,Remove,app/(tabs)/contacts.tsx,251,Confirm removal button,Button,No
+contacts.action.success,Contacts,Contact action success,app/(tabs)/contacts.tsx,256,Action success title,Alert Title,No
+contacts.action.removed,Contacts,Contact removed,app/(tabs)/contacts.tsx,256,Removal success,Alert Message,No
+contacts.action.added,Contacts,{name} added to contacts,app/(tabs)/contacts.tsx,174,Add contact success,Alert Message,Yes
+contacts.action.error,Contacts,Failed to add/remove contact,app/(tabs)/contacts.tsx,177,Contact action error,Alert Message,No
+contacts.status.section.title,Contacts,Status,app/(tabs)/contacts.tsx,468,Status section heading,Section Title,No
+contacts.status.recent.title,Contacts,Recent Updates,app/(tabs)/contacts.tsx,485,Recent status updates section,Section Title,No
+contacts.status.empty.title,Contacts,No recent updates,app/(tabs)/contacts.tsx,495,Empty status list,Empty State Title,No
+contacts.status.empty.subtitle,Contacts,When your contacts share status updates they will appear here,app/(tabs)/contacts.tsx,496,Empty state instruction,Empty State Subtitle,No
+contacts.status.modal.title,Contacts,Add Status,app/(tabs)/contacts.tsx,523,Status creation dialog,Modal Title,No
+contacts.status.modal.description,Contacts,Share what is on your mind,app/(tabs)/contacts.tsx,541,Status instruction,Modal Description,No
+contacts.status.input.placeholder,Contacts,What's happening?,app/(tabs)/contacts.tsx,550,Status text input,Placeholder,No
+contacts.status.counter,Contacts,{count}/140,app/(tabs)/contacts.tsx,559,Character limit counter,Counter,Yes
+contacts.status.post,Contacts,Post,app/(tabs)/contacts.tsx,578,Post status button,Button,No
+contacts.status.cancel,Contacts,Cancel,app/(tabs)/contacts.tsx,587,Cancel status button,Button,No
+contacts.status.success,Contacts,Status updated successfully!,app/(tabs)/contacts.tsx,156,Status update success,Alert Message,No
+contacts.status.error,Contacts,Failed to update status. Please try again.,app/(tabs)/contacts.tsx,159,Status update failure,Alert Message,No
+contacts.myStatus.add,Contacts,Add status,app/(tabs)/contacts.tsx,282,Status prompt when empty,Status Label,No
+contacts.myStatus.edit,Contacts,Tap to edit,app/(tabs)/contacts.tsx,285,Status instruction,Status Label,No
+contacts.myStatus.newStatus,Contacts,Tap to add status,app/(tabs)/contacts.tsx,286,Status instruction,Status Label,No
+contacts.presence.online,Contacts,Online,app/(tabs)/contacts.tsx,204,Contact online status,Status,No
+contacts.presence.minutesAgo,Contacts,{time}m ago,app/(tabs)/contacts.tsx,194,Minutes ago format,Status,Yes
+contacts.presence.hoursAgo,Contacts,{time}h ago,app/(tabs)/contacts.tsx,195,Hours ago format,Status,Yes
+contacts.presence.daysAgo,Contacts,{time}d ago,app/(tabs)/contacts.tsx,196,Days ago format,Status,Yes
+newChat.header.directMode,NewConversation,New Message,app/chat/new.tsx,362,Direct message mode title,Header Title,No
+newChat.header.groupMode,NewConversation,New Group,app/chat/new.tsx,362,Group mode title,Header Title,No
+newChat.backButton,NewConversation,Cancel,app/chat/new.tsx,359,Back button text,Button,No
+newChat.mode.direct,NewConversation,Direct,app/chat/new.tsx,381,Direct message mode toggle,Tab,No
+newChat.mode.group,NewConversation,Group,app/chat/new.tsx,394,Group mode toggle,Tab,No
+newChat.selected.count,NewConversation,{count} selected,app/chat/new.tsx,402,Number of selected users,Counter,Yes
+newChat.createGroup.button,NewConversation,Create Group,app/chat/new.tsx,409,Create group button,Button,No
+newChat.search.placeholder,NewConversation,Search users...,app/chat/new.tsx,418,User search input,Placeholder,No
+newChat.loading,NewConversation,Loading users...,app/chat/new.tsx,347,Initial load indicator,Loading Text,No
+newChat.error.loadingUsers,NewConversation,Failed to load users,app/chat/new.tsx,67,User list load failure,Alert Message,No
+newChat.error.notAuthenticated,NewConversation,User not authenticated,app/chat/new.tsx,107,Auth failure,Alert Message,No
+newChat.error.groupSize,NewConversation,Please select at least 2 people to create a group,app/chat/new.tsx,196,Group size validation,Alert Message,No
+newChat.error.createConversation,NewConversation,Failed to create conversation: {error},app/chat/new.tsx,158,Conversation creation error,Alert Message,Yes
+newChat.error.createGroup,NewConversation,Failed to create group: {error},app/chat/new.tsx,232,Group creation error,Alert Message,Yes
+newChat.section.contacts,NewConversation,Contacts ({count}),app/chat/new.tsx,430,Contacts list section,Section Header,Yes
+newChat.section.allUsers,NewConversation,All Users ({count}),app/chat/new.tsx,444,All users section,Section Header,Yes
+newChat.empty.search.title,NewConversation,No users found,app/chat/new.tsx,449,Search no results,Empty State Title,No
+newChat.empty.noUsers.title,NewConversation,No users available,app/chat/new.tsx,449,No users exist,Empty State Title,No
+newChat.empty.search.subtitle,NewConversation,Try a different search term,app/chat/new.tsx,453,Search help,Empty State Subtitle,No
+newChat.empty.noUsers.subtitle,NewConversation,Other users need to sign up to start conversations,app/chat/new.tsx,454,No users help,Empty State Subtitle,No
+newChat.presence.online,NewConversation,Online,app/chat/new.tsx,251,User online status,Status,No
+newChat.presence.minutesAgo,NewConversation,{time}m ago,app/chat/new.tsx,252,Minutes ago,Status,Yes
+newChat.presence.hoursAgo,NewConversation,{time}h ago,app/chat/new.tsx,253,Hours ago,Status,Yes
+newChat.presence.daysAgo,NewConversation,{time}d ago,app/chat/new.tsx,254,Days ago,Status,Yes
+chat.loading,Chat,Loading messages...,app/chat/[id].tsx,988,Initial message load,Loading Text,No
+chat.loadingMore,Chat,Loading more messages...,app/chat/[id].tsx,1066,Pagination loading,Loading Indicator,No
+chat.default.title,Chat,Chat,app/chat/[id].tsx,875,Fallback title,Default,No
+chat.group.default,Chat,Group Chat,app/chat/[id].tsx,889,Default group name,Default,No
+chat.unknownUser,Chat,Unknown User,app/chat/[id].tsx,902,Unknown user,Fallback,No
+chat.image.label,Chat,Image selection,app/chat/[id].tsx,470,Image selection title,Title,No
+chat.image.option.camera,Chat,Camera,app/chat/[id].tsx,472,Camera selection,Action,No
+chat.image.option.library,Chat,Photo Library,app/chat/[id].tsx,473,Photo library selection,Action,No
+chat.image.error.camera,Chat,Failed to take photo. Please try again.,app/chat/[id].tsx,486,Photo capture error,Alert Message,No
+chat.image.error.library,Chat,Failed to select image. Please try again.,app/chat/[id].tsx,498,Image selection error,Alert Message,No
+chat.image.error.send,Chat,Failed to send image. Please try again.,app/chat/[id].tsx,534,Image send error,Alert Message,No
+chat.input.placeholder,Chat,Type a message...,app/chat/[id].tsx,1141,Message input placeholder,Placeholder,No
+chat.send.button,Chat,Send,app/chat/[id].tsx,1155,Send message button,Button,No
+chat.send.loading,Chat,...,app/chat/[id].tsx,1155,Sending indicator,Button,No
+chat.image.preview.cancel,Chat,Cancel,app/chat/[id].tsx,1085,Cancel image preview,Button,No
+chat.image.upload,Chat,Uploading {progress}%,app/chat/[id].tsx,1097,Upload progress,Button,Yes
+chat.image.send,Chat,Send,app/chat/[id].tsx,1098,Send image button,Button,No
+chat.translation.showOriginal,Chat,Tap to show translation,app/chat/[id].tsx,824,Switch to original text,Hint,No
+chat.translation.source,Chat,Translated from {lang},app/chat/[id].tsx,825,Translation source,Info,Yes
+chat.translation.loading,Chat,Translating...,app/chat/[id].tsx,835,Translation in progress,Indicator,No
+chat.status.seen,Chat,Seen,app/chat/[id].tsx,867,Read indicator,Status,No
+chat.presence.online,Chat,Online,app/chat/[id].tsx,1017,User online,Status,No
+chat.presence.lastSeen,Chat,Last seen {time},app/chat/[id].tsx,1018,Last seen,Status,Yes
+language.header.title,Language,Language,app/settings/language.tsx,112,Language settings title,Header Title,No
+language.section.preferred,Language,Preferred Language,app/settings/language.tsx,119,Language selection section,Section Title,No
+language.modal.title,Language,Select Language,app/settings/language.tsx,176,Language picker title,Modal Title,No
+language.autoTranslate.title,Language,Auto-Translate Messages,app/settings/language.tsx,139,Auto-translate setting,Toggle Title,No
+language.autoTranslate.subtitle,Language,Automatically translate incoming messages to your preferred language,app/settings/language.tsx,140,Auto-translate description,Toggle Subtitle,No
+language.save.saving,Language,Saving...,app/settings/language.tsx,161,Save button loading,Button,No
+language.save.button,Language,Save Preferences,app/settings/language.tsx,161,Save button,Button,No
+language.success,Language,Language preferences saved successfully!,app/settings/language.tsx,64,Success message,Alert Message,No
+language.error,Language,Failed to save preferences. Please try again.,app/settings/language.tsx,68,Error message,Alert Message,No
+notifications.banner.image,Notifications,📷 Photo,components/InAppBanner.tsx,103,Image message indicator,Label,No

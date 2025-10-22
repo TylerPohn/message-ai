@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale, isSupportedLocale } from '@/locales/translations'
 
 interface SettingsItem {
   id: string
@@ -32,6 +33,12 @@ interface SettingsItem {
 export default function SettingsScreen() {
   const { user, userProfile, logout, updateUserProfile } = useAuth()
   const router = useRouter()
+  // Use user's preferred language if available and supported, otherwise default to English
+  const locale: Locale = (
+    userProfile?.preferredLanguage && isSupportedLocale(userProfile.preferredLanguage)
+      ? (userProfile.preferredLanguage as Locale)
+      : 'en'
+  )
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [displayName, setDisplayName] = useState(userProfile?.displayName || '')
   const [status, setStatus] = useState(userProfile?.status || '')
@@ -50,19 +57,19 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Sign Out',
-      `Are you sure you want to sign out, ${userProfile?.displayName}?`,
+      t(locale, 'settings.signOutTitle'),
+      t(locale, 'settings.signOutConfirmation', { name: userProfile?.displayName || 'User' }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t(locale, 'settings.cancelButton'), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t(locale, 'settings.signOutButton'),
           style: 'destructive',
           onPress: async () => {
             try {
               await logout()
             } catch (error) {
               console.error('Logout error:', error)
-              Alert.alert('Error', 'Failed to sign out. Please try again.')
+              Alert.alert(t(locale, 'common.error'), t(locale, 'settings.signOutErrorMessage'))
             }
           }
         }
@@ -78,7 +85,7 @@ export default function SettingsScreen() {
 
   const handleSaveProfile = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Error', 'Display name is required')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'settings.displayNameRequiredError'))
       return
     }
 
@@ -89,10 +96,10 @@ export default function SettingsScreen() {
         status: status.trim()
       })
       setEditModalVisible(false)
-      Alert.alert('Success', 'Profile updated successfully!')
+      Alert.alert(t(locale, 'common.ok'), t(locale, 'settings.profileUpdateSuccessMessage'))
     } catch (error) {
       console.error('Error updating profile:', error)
-      Alert.alert('Error', 'Failed to update profile. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'settings.profileUpdateErrorMessage'))
     } finally {
       setLoading(false)
     }
@@ -102,7 +109,11 @@ export default function SettingsScreen() {
     if (!user) return
 
     const showActionSheet = () => {
-      const options = ['Take Photo', 'Choose from Library', 'Cancel']
+      const options = [
+        t(locale, 'settings.takePhotoOption'),
+        t(locale, 'settings.chooseFromLibraryOption'),
+        t(locale, 'common.cancel')
+      ]
       const cancelButtonIndex = 2
 
       if (Platform.OS === 'ios') {
@@ -110,7 +121,7 @@ export default function SettingsScreen() {
           {
             options,
             cancelButtonIndex,
-            title: 'Select Avatar'
+            title: t(locale, 'settings.selectAvatarTitle')
           },
           (buttonIndex) => {
             if (buttonIndex === 0) {
@@ -121,10 +132,10 @@ export default function SettingsScreen() {
           }
         )
       } else {
-        Alert.alert('Select Avatar', 'Choose how you want to set your avatar', [
-          { text: 'Take Photo', onPress: handleTakePhoto },
-          { text: 'Choose from Library', onPress: handleChooseFromLibrary },
-          { text: 'Cancel', style: 'cancel' }
+        Alert.alert(t(locale, 'settings.selectAvatarAlertTitle'), t(locale, 'settings.selectAvatarAlertMessage'), [
+          { text: t(locale, 'settings.takePhotoOption'), onPress: handleTakePhoto },
+          { text: t(locale, 'settings.chooseFromLibraryOption'), onPress: handleChooseFromLibrary },
+          { text: t(locale, 'common.cancel'), style: 'cancel' }
         ])
       }
     }
@@ -142,7 +153,7 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error('Error taking photo:', error)
-      Alert.alert('Error', 'Failed to take photo. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'settings.avatarPhotoError'))
     }
   }
 
@@ -156,7 +167,7 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error('Error choosing from library:', error)
-      Alert.alert('Error', 'Failed to select image. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'settings.avatarImageSelectionError'))
     }
   }
 
@@ -182,10 +193,10 @@ export default function SettingsScreen() {
       // Update local state
       await updateUserProfile({ photoURL })
 
-      Alert.alert('Success', 'Avatar updated successfully!')
+      Alert.alert(t(locale, 'common.ok'), t(locale, 'settings.avatarSuccessMessage'))
     } catch (error) {
       console.error('Error uploading avatar:', error)
-      Alert.alert('Error', 'Failed to upload avatar. Please try again.')
+      Alert.alert(t(locale, 'common.error'), t(locale, 'settings.avatarUploadError'))
     } finally {
       setAvatarLoading(false)
       setAvatarProgress(0)
@@ -195,41 +206,41 @@ export default function SettingsScreen() {
   const settingsItems: SettingsItem[] = [
     {
       id: 'account',
-      title: 'Account',
-      subtitle: 'Security notifications, change number',
+      title: t(locale, 'settings.accountTitle'),
+      subtitle: t(locale, 'settings.accountSubtitle'),
       iconName: 'key-outline',
-      onPress: () => Alert.alert('Account', 'Account settings coming soon!')
+      onPress: () => Alert.alert(t(locale, 'settings.accountAlertTitle'), t(locale, 'settings.accountAlertMessage'))
     },
     {
       id: 'privacy',
-      title: 'Privacy',
-      subtitle: 'Block contacts, disappearing messages',
+      title: t(locale, 'settings.privacyTitle'),
+      subtitle: t(locale, 'settings.privacySubtitle'),
       iconName: 'lock-closed-outline',
-      onPress: () => Alert.alert('Privacy', 'Privacy settings coming soon!')
+      onPress: () => Alert.alert(t(locale, 'settings.privacyAlertTitle'), t(locale, 'settings.privacyAlertMessage'))
     },
     {
       id: 'avatar',
-      title: 'Avatar',
-      subtitle: 'Create, edit, profile photo',
+      title: t(locale, 'settings.avatarTitle'),
+      subtitle: t(locale, 'settings.avatarSubtitle'),
       iconName: 'person-outline',
       onPress: handleAvatarUpload
     },
     {
       id: 'language',
-      title: 'Language',
+      title: t(locale, 'settings.languageTitle'),
       subtitle: userProfile?.preferredLanguage
-        ? `Language: ${userProfile.preferredLanguage.toUpperCase()}`
-        : 'Language preferences',
+        ? t(locale, 'settings.languageSubtitle', { code: userProfile.preferredLanguage.toUpperCase() })
+        : t(locale, 'settings.languageDefaultSubtitle'),
       iconName: 'language-outline',
       onPress: () => router.push('/settings/language')
     },
     {
       id: 'notifications',
-      title: 'Notifications',
-      subtitle: 'Message, group & call tones',
+      title: t(locale, 'settings.notificationsTitle'),
+      subtitle: t(locale, 'settings.notificationsSubtitle'),
       iconName: 'notifications-outline',
       onPress: () =>
-        Alert.alert('Notifications', 'Notification settings coming soon!')
+        Alert.alert(t(locale, 'settings.notificationsAlertTitle'), t(locale, 'settings.notificationsAlertMessage'))
     }
   ]
 
@@ -253,11 +264,11 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t(locale, 'settings.headerTitle')}</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.searchButton}
-            onPress={() => Alert.alert('Search', 'Search feature coming soon!')}
+            onPress={() => Alert.alert(t(locale, 'settings.searchAlertTitle'), t(locale, 'settings.searchAlertMessage'))}
           >
             <Ionicons name='search-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
@@ -294,10 +305,10 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>
-                  {userProfile?.displayName || 'Unknown User'}
+                  {userProfile?.displayName || t(locale, 'settings.profileNameFallback')}
                 </Text>
                 <Text style={styles.profileStatus}>
-                  {userProfile?.status || 'Hey there! I am using MessageAI'}
+                  {userProfile?.status || t(locale, 'settings.defaultStatus')}
                 </Text>
               </View>
             </View>
@@ -322,7 +333,7 @@ export default function SettingsScreen() {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Sign Out</Text>
+          <Text style={styles.logoutButtonText}>{t(locale, 'settings.signOutTitle')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -339,7 +350,7 @@ export default function SettingsScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Text style={styles.modalTitle}>{t(locale, 'settings.editProfileTitle')}</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setEditModalVisible(false)}
@@ -358,28 +369,28 @@ export default function SettingsScreen() {
             >
               <View style={styles.modalBody}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Display Name</Text>
+                  <Text style={styles.inputLabel}>{t(locale, 'settings.displayNameLabel')}</Text>
                   <TextInput
                     style={styles.textInput}
                     value={displayName}
                     onChangeText={setDisplayName}
-                    placeholder='Enter your name'
+                    placeholder={t(locale, 'settings.displayNameInputPlaceholder')}
                     placeholderTextColor={WhatsAppColors.lightText}
                   />
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Status</Text>
+                  <Text style={styles.inputLabel}>{t(locale, 'settings.statusLabel')}</Text>
                   <TextInput
                     style={styles.textInput}
                     value={status}
                     onChangeText={setStatus}
-                    placeholder="What's on your mind?"
+                    placeholder={t(locale, 'settings.statusPlaceholder')}
                     placeholderTextColor={WhatsAppColors.lightText}
                     multiline
                     maxLength={140}
                   />
-                  <Text style={styles.characterCount}>{status.length}/140</Text>
+                  <Text style={styles.characterCount}>{t(locale, 'settings.profileCharacterCounter', { count: status.length })}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -394,7 +405,7 @@ export default function SettingsScreen() {
                 disabled={loading || !displayName.trim()}
               >
                 <Text style={styles.saveButtonText}>
-                  {loading ? 'Saving...' : 'Save'}
+                  {loading ? t(locale, 'settings.profileSavingButton') : t(locale, 'settings.profileSaveButton')}
                 </Text>
               </TouchableOpacity>
 
@@ -403,7 +414,7 @@ export default function SettingsScreen() {
                 onPress={() => setEditModalVisible(false)}
                 disabled={loading}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t(locale, 'settings.cancelButton')}</Text>
               </TouchableOpacity>
             </View>
           </View>
