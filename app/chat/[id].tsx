@@ -337,7 +337,7 @@ export default function ChatScreen() {
       setTranslationQueue([])
       setTranslationProgress({ current: 0, total: 0 })
     }
-  }, [user, id, typingTimeout, messages])
+  }, [user, id, typingTimeout])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
@@ -783,10 +783,21 @@ export default function ChatScreen() {
         console.log(
           '🔄 [handleAutoTranslation] Updating message with translation...'
         )
+        // Extract the translated text properly
+        const translatedTextString =
+          translationResult.message?.content?.translated_text ||
+          translationResult.translatedText ||
+          translationResult.message
+
+        console.log(
+          '🔄 [handleAutoTranslation] Extracted translated text:',
+          translatedTextString
+        )
+
         // Update message with translation
         await MessagingService.updateMessageTranslation(
           message.id,
-          translationResult.translatedText || translationResult.message,
+          translatedTextString, // Now this will be a string, not an object
           detectedLanguage,
           userProfile.preferredLanguage
         )
@@ -1030,7 +1041,13 @@ export default function ChatScreen() {
                     userProfile?.autoTranslate &&
                     !showOriginalText.get(item.id)
                   ) {
-                    return item.translatedText
+                    // Handle both old format (string) and new format (object)
+                    const translatedText =
+                      typeof item.translatedText === 'string'
+                        ? item.translatedText
+                        : item.translatedText?.content?.translated_text ||
+                          item.text
+                    return translatedText
                   }
                   return item.text
                 })()}
