@@ -64,6 +64,26 @@ export const onMessageCreated = onDocumentCreated(
         logger.error('Firestore access test failed:', error)
       }
 
+      // Test RTDB access and get database URL
+      try {
+        const db = admin.database()
+        const dbUrl = db.app.options.databaseURL
+        logger.info('RTDB database info:', {
+          databaseURL: dbUrl,
+          appName: db.app.name
+        })
+
+        // Test RTDB write
+        const testRef = db.ref('test/connection')
+        await testRef.set({ timestamp: Date.now(), test: true })
+        logger.info('RTDB write test successful')
+
+        // Clean up test data
+        await testRef.remove()
+      } catch (error) {
+        logger.error('RTDB access test failed:', error)
+      }
+
       // Get conversation data using direct Firestore reference
       logger.info('Attempting to find conversation:', {
         conversationId: messageData.conversationId,
@@ -136,7 +156,9 @@ export const onMessageCreated = onDocumentCreated(
             logger.info('Successfully created notification for user:', {
               userId: participantId,
               notificationId: newNotificationRef.key,
-              conversationId: messageData.conversationId
+              conversationId: messageData.conversationId,
+              rtdbPath: `notifications/${participantId}/${newNotificationRef.key}`,
+              databaseURL: db.app.options.databaseURL
             })
 
             // Set up auto-cleanup after 24 hours
