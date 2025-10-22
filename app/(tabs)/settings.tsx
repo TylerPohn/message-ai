@@ -10,8 +10,10 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -213,13 +215,6 @@ export default function SettingsScreen() {
       onPress: handleAvatarUpload
     },
     {
-      id: 'lists',
-      title: 'Lists',
-      subtitle: 'Manage people and groups',
-      iconName: 'list-outline',
-      onPress: () => router.push('/contacts')
-    },
-    {
       id: 'language',
       title: 'Language',
       subtitle: userProfile?.preferredLanguage
@@ -235,21 +230,6 @@ export default function SettingsScreen() {
       iconName: 'notifications-outline',
       onPress: () =>
         Alert.alert('Notifications', 'Notification settings coming soon!')
-    },
-    {
-      id: 'storage',
-      title: 'Storage and data',
-      subtitle: 'Network usage, auto-download',
-      iconName: 'server-outline',
-      onPress: () => Alert.alert('Storage', 'Storage settings coming soon!')
-    },
-    {
-      id: 'accessibility',
-      title: 'Accessibility',
-      subtitle: 'Animation',
-      iconName: 'accessibility-outline',
-      onPress: () =>
-        Alert.alert('Accessibility', 'Accessibility settings coming soon!')
     }
   ]
 
@@ -350,11 +330,14 @@ export default function SettingsScreen() {
       <Modal
         visible={editModalVisible}
         animationType='slide'
-        transparent={true}
+        transparent={false}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoidingView}
+        >
+          <View style={styles.modalOverlay}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
               <TouchableOpacity
@@ -369,32 +352,37 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Display Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  placeholder='Enter your name'
-                  placeholderTextColor={WhatsAppColors.lightText}
-                />
-              </View>
+            <ScrollView
+              style={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.modalBody}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Display Name</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder='Enter your name'
+                    placeholderTextColor={WhatsAppColors.lightText}
+                  />
+                </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Status</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={status}
-                  onChangeText={setStatus}
-                  placeholder="What's on your mind?"
-                  placeholderTextColor={WhatsAppColors.lightText}
-                  multiline
-                  maxLength={140}
-                />
-                <Text style={styles.characterCount}>{status.length}/140</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Status</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={status}
+                    onChangeText={setStatus}
+                    placeholder="What's on your mind?"
+                    placeholderTextColor={WhatsAppColors.lightText}
+                    multiline
+                    maxLength={140}
+                  />
+                  <Text style={styles.characterCount}>{status.length}/140</Text>
+                </View>
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -419,7 +407,7 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   )
@@ -611,19 +599,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600'
   },
+  keyboardAvoidingView: {
+    flex: 1,
+    backgroundColor: WhatsAppColors.darkBackground
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  modalContent: {
     backgroundColor: WhatsAppColors.darkBackground,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '80%'
+    justifyContent: 'flex-start'
+  },
+  modalScrollContent: {
+    flex: 1
   },
   modalHeader: {
     flexDirection: 'row',

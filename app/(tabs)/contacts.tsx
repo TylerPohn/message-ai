@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -323,9 +324,17 @@ export default function ContactsScreen() {
       >
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.displayName.charAt(0).toUpperCase()}
-            </Text>
+            {item.photoURL ? (
+              <Image
+                source={{ uri: item.photoURL }}
+                style={styles.avatarImage}
+                resizeMode='cover'
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {item.displayName.charAt(0).toUpperCase()}
+              </Text>
+            )}
           </View>
           {isOnline && <View style={styles.onlineIndicator} />}
         </View>
@@ -801,6 +810,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold'
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25
   },
   onlineIndicator: {
     position: 'absolute',
