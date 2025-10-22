@@ -64,7 +64,7 @@
 - [x] **ChatScreen**: Individual chat interface with message handling
 - [x] **Firestore Collections**: Set up conversations, messages, memberships
 - [x] **Real-time Listeners**: Firestore listeners for new messages
-- [x] **Optimistic UI**: Immediate local updates with server sync
+- [x] **Real-time UI**: Messages appear with correct status directly from Firestore
 - [x] **Message Persistence**: Verify messages persist after app restart
 - [x] **Firestore Offline Persistence**: Enable offline support
 - [x] **Test Data Creation**: Added utility to create test conversations
@@ -83,8 +83,9 @@
 - [x] **Offline Message Visibility**: Queued messages display in UI
 - [x] **Network Monitoring**: Real-time connectivity detection
 - [x] **Retry Logic**: Exponential backoff for failed sends
-- [x] **Status Indicators**: Simplified spinner → gray ✓ → green ✓
+- [x] **Status Indicators**: Sending (⏳ Orange) → Sent (✓ Gray) → Delivered (✓ Gray) → Read (✓ Green)
 - [x] **Most Recent Only**: Status shown only on latest message
+- [x] **Message Deduplication**: Queued messages merged with Firestore messages, Firestore takes priority
 
 ### ✅ Presence & Read Receipts - COMPLETED
 

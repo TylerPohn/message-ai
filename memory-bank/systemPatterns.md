@@ -39,8 +39,8 @@ Offline Queue → Retry Logic → Reconnection → Sync Resolution
 
 ### Messaging Patterns
 
-- **Optimistic UI**: Immediate local updates with server reconciliation
-- **Offline Queue**: Local storage with retry mechanisms
+- **Real-time UI**: Messages appear with correct status directly from Firestore
+- **Offline Queue**: Local storage with retry mechanisms for failed sends
 - **Real-time Sync**: Firestore listeners with presence indicators
 - **Message Ordering**: Server timestamps for consistent ordering
 
@@ -78,12 +78,17 @@ Firestore ← Real-time Listeners ← UI Updates
 - **Realtime Database**: presence, typing indicators
 - **Message Status Flow**: sending → sent → delivered → read (instant progression)
 - **Real-time Listener**: Processes ALL messages from Firestore for accurate status updates
-- **No Optimistic Messages**: Messages appear with correct status directly from Firestore
-- **Status Indicators**: Spinner (⏳) → Gray checkmark (✓) → Green checkmark (✓)
+- **Direct Firestore UI**: Messages appear with correct status directly from Firestore
+- **Status Indicators**:
+  - Sending: ⏳ (Orange) - Message being sent or queued
+  - Sent: ✓ (Gray) - Message sent to server
+  - Delivered: ✓ (Gray) - Message reached recipient's device
+  - Read: ✓ (Green) - Message read by recipient
 - **Offline Support**: Local queue with retry logic and AsyncStorage persistence
 - **Network Monitoring**: Real-time connectivity detection with NetInfo
 - **Message IDs**: Firestore document IDs used throughout for consistency
 - **Read Status**: Automatic read receipt updates when messages are viewed
+- **Message Deduplication**: Queued messages (queue\_ prefix) merged with Firestore messages, Firestore takes priority
 
 ### Group Chat Patterns
 

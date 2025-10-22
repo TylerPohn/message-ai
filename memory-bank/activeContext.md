@@ -302,8 +302,9 @@
 - **Translation Optimization**: ✅ COMPLETED - Limited auto-translation to most recent message only
   - **Performance Improvement**: Modified auto-translation logic to translate only the most recent message per batch
   - **Reduced Load**: Significantly reduced translation requests and network traffic
-  - **Smart Filtering**: Messages filtered by type, sender, and translation status, then sorted by timestamp
-  - **Files Updated**: app/chat/[id].tsx (lines 220-235)
+  - **Smart Filtering**: Messages filtered by type, sender, translation status, and already translating state, then sorted by timestamp
+  - **Translation Tracking**: Uses ref to track messages currently being translated to prevent duplicate attempts
+  - **Files Updated**: app/chat/[id].tsx (lines 237-248)
   - **Result**: More efficient translation system focusing on the most important recent messages
 - **Status System Simplification**: ✅ COMPLETED - Removed complex Status collection and reverted to simple UserProfile.status field
   - **Architecture Change**: Deleted StatusService and Status collection, moved to UserProfile.status field
@@ -333,13 +334,13 @@
   - **Files Updated**: app/(tabs)/index.tsx, services/userCacheService.ts
   - **Result**: Status updates now appear instantly across all users without requiring screen reload
 - **Message Status Delay Fix**: ✅ COMPLETED - Eliminated 3+ second delays in message status progression
-  - **Root Cause**: Artificial setTimeout delays (1s + 2s) and complex optimistic message system
-  - **Solution**: Removed entire optimistic message system and simplified real-time listener
+  - **Root Cause**: Artificial setTimeout delays (1s + 2s) and complex message handling system
+  - **Solution**: Removed artificial delays and simplified real-time listener to process ALL messages from Firestore
   - **Real-time Listener Fix**: Changed from filtering "new" messages to processing ALL messages from Firestore
   - **Status Flow**: Messages now show correct status immediately from Firestore (sending → sent → delivered → read)
   - **Performance**: Reduced from 3+ seconds to < 1 second for status progression
-  - **Code Simplification**: Removed ~100 lines of complex optimistic message handling
-  - **Files Updated**: app/chat/[id].tsx (removed optimistic state, creation, cleanup, and rendering logic)
+  - **Code Simplification**: Removed ~100 lines of complex message handling logic
+  - **Files Updated**: app/chat/[id].tsx (removed artificial delays and simplified real-time listener)
   - **Result**: Message status updates are now instant and accurate
 
 ## Current State

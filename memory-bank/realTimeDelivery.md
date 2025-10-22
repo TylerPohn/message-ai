@@ -129,6 +129,32 @@ const getAllMessages = (): Message[] => {
 | Delivered | ✓    | Gray   | Message reached recipient's device |
 | Read      | ✓    | Green  | Message read by recipient          |
 
+### Message Deduplication
+
+The system handles two types of messages:
+
+1. **Queued Messages** (Offline Queue):
+
+   - Have `queue_` prefix IDs (e.g., `queue_1234567890_abc123`)
+   - Stored in AsyncStorage for persistence
+   - Show as "sending" status with ⏳ spinner
+   - Automatically sent to Firestore when network is restored
+
+2. **Firestore Messages** (Real Messages):
+   - Have Firestore document IDs (e.g., `abc123def456`)
+   - Stored in Firestore database
+   - Show proper status progression (sent → delivered → read)
+   - Real-time synchronized across all devices
+
+**Deduplication Logic**:
+
+- When merging queued and Firestore messages, the system deduplicates based on:
+  - Same text content
+  - Same sender ID
+  - Timestamp within 5 seconds
+- **Priority**: Firestore messages take precedence over queued messages
+- Queued messages are removed from AsyncStorage after successful Firestore send
+
 ### Status Display Rules
 
 - **Most Recent Only**: Status indicators show only on the latest message sent by the user
@@ -149,8 +175,10 @@ const getAllMessages = (): Message[] => {
 
 1. **Automatic Processing**: Queue automatically processes when connectivity restored
 2. **Retry Logic**: Failed messages retry with exponential backoff
-3. **Status Updates**: Messages transition from queued to sent/delivered/read
-4. **UI Sync**: Real-time updates reflect new message states
+3. **Message Transition**: Queued messages (queue\_ IDs) are sent to Firestore and get new document IDs
+4. **Deduplication**: System merges queued and Firestore messages, removing duplicates
+5. **Status Updates**: Messages transition from queued to sent/delivered/read
+6. **UI Sync**: Real-time updates reflect new message states
 
 ## Network State Indicators
 
@@ -198,6 +226,33 @@ const getAllMessages = (): Message[] => {
 2. **Restart App**: Queue persists across restarts
 3. **Come Online**: Queue processes automatically
 4. **Message Delivery**: Queued messages send successfully
+
+## Queued Message Lifecycle
+
+### Message Creation Flow
+
+1. **User Sends Message** → Check network status
+2. **If Offline** → Add to queue with `queue_` prefix ID
+3. **If Online** → Send directly to Firestore with document ID
+4. **Network Error** → Fallback to queue with `queue_` prefix ID
+
+### Queue Processing Flow
+
+1. **Network Restored** → Queue processing triggered
+2. **Retry Logic** → Exponential backoff for failed messages
+3. **Successful Send** → Message gets Firestore document ID
+4. **Deduplication** → Remove queued message, keep Firestore message
+5. **Status Update** → UI shows proper status progression
+
+### Message State Transitions
+
+```
+Queued Message (queue_123) → Firestore Send → Real Message (abc123)
+     ↓                              ↓
+AsyncStorage                    Firestore
+     ↓                              ↓
+UI: ⏳ (Orange)              UI: ✓ (Gray/Green)
+```
 
 ## Performance Considerations
 
