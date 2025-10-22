@@ -128,13 +128,6 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!user || !id) return
 
-    console.log('🔄 [ChatScreen] Initializing chat screen...')
-    console.log('🔄 [ChatScreen] User:', user?.uid)
-    console.log('🔄 [ChatScreen] User profile:', {
-      autoTranslate: userProfile?.autoTranslate,
-      preferredLanguage: userProfile?.preferredLanguage,
-      displayName: userProfile?.displayName
-    })
 
     // Initialize network service
     NetworkService.initialize()
@@ -215,25 +208,7 @@ export default function ChatScreen() {
           setMessages(updatedMessages.reverse()) // Reverse to show oldest first
 
           // Auto-translate new messages if user has auto-translate enabled
-          console.log('🔄 [ChatScreen] Checking auto-translation conditions...')
-          console.log(
-            '🔄 [ChatScreen] userProfile?.autoTranslate:',
-            userProfile?.autoTranslate
-          )
-          console.log(
-            '🔄 [ChatScreen] userProfile?.preferredLanguage:',
-            userProfile?.preferredLanguage
-          )
-          console.log(
-            '🔄 [ChatScreen] updatedMessages count:',
-            updatedMessages.length
-          )
-
           if (userProfile?.autoTranslate && userProfile?.preferredLanguage) {
-            console.log(
-              '✅ [ChatScreen] Auto-translate is enabled, filtering messages...'
-            )
-
             // Filter and get only the most recent message that needs translation
             const messagesToTranslate = updatedMessages
               .filter(
@@ -247,37 +222,10 @@ export default function ChatScreen() {
               .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Most recent first
               .slice(0, 1) // Take only the most recent
 
-            console.log(
-              '🔄 [ChatScreen] Messages to translate:',
-              messagesToTranslate.length
-            )
-            console.log(
-              '🔄 [ChatScreen] Message details:',
-              messagesToTranslate.map((msg) => ({
-                id: msg.id,
-                text: msg.text?.substring(0, 30) + '...',
-                senderId: msg.senderId,
-                hasTranslatedText: !!msg.translatedText,
-                isTranslating: !!msg.isTranslating
-              }))
-            )
-
             // Translate only the most recent message
             for (const message of messagesToTranslate) {
-              console.log(
-                '🔄 [ChatScreen] Starting translation for message:',
-                message.id
-              )
               await handleAutoTranslation(message)
             }
-          } else {
-            console.log(
-              '❌ [ChatScreen] Auto-translate disabled or missing settings:',
-              {
-                autoTranslate: userProfile?.autoTranslate,
-                preferredLanguage: userProfile?.preferredLanguage
-              }
-            )
           }
         }
       },
@@ -287,11 +235,6 @@ export default function ChatScreen() {
     // Load queued messages for this conversation
     const loadQueuedMessages = async () => {
       const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
-      console.log(
-        '🔄 Initial load of queued messages:',
-        queued.length,
-        queued.map((q) => ({ id: q.id, text: q.text }))
-      )
       setQueuedMessages(queued)
     }
     loadQueuedMessages()
@@ -325,18 +268,12 @@ export default function ChatScreen() {
       // Clear translation tracking sets
       translatingMessages.current.clear()
     }
-  }, [user, id, typingTimeout])
+  }, [user, id])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
     const refreshQueuedMessages = () => {
       const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
-      console.log(
-        '🔄 Network state changed, refreshing queued messages:',
-        queued.length,
-        'isOnline:',
-        networkState.isOnline
-      )
       setQueuedMessages(queued)
     }
     refreshQueuedMessages()
@@ -362,28 +299,9 @@ export default function ChatScreen() {
               otherParticipant,
               (presence) => {
                 if (presence) {
-                  console.log(
-                    `[ChatScreen] Received presence update for ${otherParticipant}:`,
-                    {
-                      status: presence.status,
-                      lastSeen: new Date(presence.lastSeen).toISOString(),
-                      age: Math.round((Date.now() - presence.lastSeen) / 1000)
-                    }
-                  )
-
                   // Check if user should be considered offline based on time
                   const isActuallyOffline =
                     PresenceService.isUserOffline(presence)
-
-                  console.log(
-                    `[ChatScreen] Presence check for ${otherParticipant}:`,
-                    {
-                      isActuallyOffline,
-                      willShowAs: isActuallyOffline
-                        ? 'offline'
-                        : presence.status
-                    }
-                  )
 
                   if (isActuallyOffline) {
                     // Show as offline even if status says "online"
@@ -394,10 +312,6 @@ export default function ChatScreen() {
                   } else {
                     setPresenceData(presence)
                   }
-                } else {
-                  console.log(
-                    `[ChatScreen] No presence data for ${otherParticipant}`
-                  )
                 }
               }
             )
@@ -436,7 +350,6 @@ export default function ChatScreen() {
         typingUnsubscribe = TypingService.listenToTypingIndicators(
           id,
           (typingUsers) => {
-            console.log(`[ChatScreen] Typing users update:`, typingUsers)
             setTypingUsers(typingUsers)
           }
         )
@@ -674,20 +587,12 @@ export default function ChatScreen() {
 
       // Check if message was queued (offline)
       if (messageId.startsWith('queue_')) {
-        console.log('🔄 Message was queued, messageId:', messageId)
-
         // Message is now queued for offline processing
 
         // Refresh queued messages to show the newly queued message
         const queued = OfflineQueueService.getQueuedMessagesForConversation(id)
-        console.log(
-          '🔄 Queued messages after refresh:',
-          queued.length,
-          queued.map((q) => ({ id: q.id, text: q.text }))
-        )
         setQueuedMessages(queued)
       } else {
-        console.log('🔄 Message sent successfully, messageId:', messageId)
         // Message successfully sent to Firestore
 
         // Message status is already correctly set by messagingService.ts
@@ -712,23 +617,7 @@ export default function ChatScreen() {
 
   // Handle auto-translation of messages
   const handleAutoTranslation = async (message: Message) => {
-    console.log(
-      '🔄 [handleAutoTranslation] Starting translation for message:',
-      message.id
-    )
-    console.log(
-      '🔄 [handleAutoTranslation] Message text:',
-      message.text?.substring(0, 50) + '...'
-    )
-    console.log(
-      '🔄 [handleAutoTranslation] User preferred language:',
-      userProfile?.preferredLanguage
-    )
-
     if (!userProfile?.preferredLanguage) {
-      console.log(
-        '❌ [handleAutoTranslation] No preferred language set, skipping translation'
-      )
       return
     }
 
@@ -736,36 +625,20 @@ export default function ChatScreen() {
     translatingMessages.current.add(message.id)
 
     try {
-      console.log(
-        '🔄 [handleAutoTranslation] Marking message as translating...'
-      )
       // Set translating flag
       await MessagingService.setMessageTranslating(message.id, true)
 
-      console.log('🔄 [handleAutoTranslation] Translating message...')
       // Translate directly - let the service handle language detection
       const translationResult = await TranslateService.translateMessage(
         message.text,
         userProfile.preferredLanguage
       )
-      console.log(
-        '✅ [handleAutoTranslation] Translation result:',
-        translationResult
-      )
 
-      console.log(
-        '🔄 [handleAutoTranslation] Updating message with translation...'
-      )
       // Extract the translated text properly
       const translatedTextString =
         translationResult.message?.content?.translated_text ||
         translationResult.translatedText ||
         translationResult.message
-
-      console.log(
-        '🔄 [handleAutoTranslation] Extracted translated text:',
-        translatedTextString
-      )
 
       // Update message with translation
       await MessagingService.updateMessageTranslation(
@@ -774,26 +647,15 @@ export default function ChatScreen() {
         'auto-detected', // We don't know the source language anymore
         userProfile.preferredLanguage
       )
-      console.log(
-        '✅ [handleAutoTranslation] Translation completed successfully'
-      )
 
       // Remove from translating set when complete
       translatingMessages.current.delete(message.id)
     } catch (error) {
-      console.error(
-        '❌ [handleAutoTranslation] Error auto-translating message:',
-        error
-      )
-      console.error('❌ [handleAutoTranslation] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      })
       // Clear translating flag on error
       try {
         await MessagingService.setMessageTranslating(message.id, false)
       } catch (clearError) {
-        console.error('Error clearing translating flag:', clearError)
+        // Silent fail on error clearing
       }
 
       // Remove from translating set on error
@@ -1109,13 +971,6 @@ export default function ChatScreen() {
 
   // Merge Firestore messages with queued messages
   const getAllMessages = (): Message[] => {
-    console.log(
-      '🔄 getAllMessages called - messages:',
-      messages.length,
-      'queued:',
-      queuedMessages.length
-    )
-
     // Convert queued messages to Message format
     const queuedAsMessages: Message[] = queuedMessages.map((queued) => ({
       id: queued.id,
@@ -1129,15 +984,6 @@ export default function ChatScreen() {
       imageURL: queued.imageURL,
       replyTo: queued.replyTo
     }))
-
-    console.log(
-      '🔄 Queued as messages:',
-      queuedAsMessages.map((q) => ({
-        id: q.id,
-        text: q.text,
-        status: q.status
-      }))
-    )
 
     // Combine Firestore messages with queued messages
     const allMessages = [...messages, ...queuedAsMessages]
@@ -1178,16 +1024,6 @@ export default function ChatScreen() {
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     )
 
-    console.log(
-      '🔄 Final messages:',
-      finalMessages.map((m) => ({
-        id: m.id,
-        text: m.text,
-        status: m.status,
-        isQueued: m.id.startsWith('queue_')
-      }))
-    )
-
     return finalMessages
   }
 
@@ -1199,6 +1035,9 @@ export default function ChatScreen() {
       </View>
     )
   }
+
+  // Calculate typing indicator text once to avoid double rendering
+  const typingText = user ? TypingService.formatTypingText(typingUsers, user.uid) : ''
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -1232,9 +1071,9 @@ export default function ChatScreen() {
                 {getOtherUserStatus()}
               </Text>
             )}
-            {typingUsers.length > 0 && user && (
+            {typingText && (
               <Text style={styles.typingIndicator}>
-                {TypingService.formatTypingText(typingUsers, user.uid)}
+                {typingText}
               </Text>
             )}
             {!networkState.isOnline && (
