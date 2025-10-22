@@ -93,4 +93,12 @@ export class UserCacheService {
     this.clearUserCache(userId)
     console.log('User cache invalidated for status update:', userId)
   }
+
+  // Handle real-time profile updates from Firestore listeners
+  static handleRealtimeUpdate(userProfile: UserProfile): void {
+    // Update cache with fresh data from real-time listener
+    this.userCache.set(userProfile.uid, userProfile)
+    this.cacheExpiry.set(userProfile.uid, Date.now() + this.CACHE_DURATION)
+    console.log('User cache updated from real-time listener:', userProfile.uid)
+  }
 }

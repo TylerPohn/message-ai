@@ -1,5 +1,6 @@
 import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
+import { db } from '@/firebaseConfig'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
@@ -9,6 +10,7 @@ import { Conversation, UserProfile } from '@/types/messaging'
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from '@react-navigation/native'
 import { useRouter } from 'expo-router'
+import { doc, onSnapshot } from 'firebase/firestore'
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -160,6 +162,52 @@ export default function ChatsScreen() {
 
           // Store unsubscribers for cleanup
           ;(window as any).presenceUnsubscribers = presenceUnsubscribers
+
+          // Set up real-time status listeners for all participants
+          console.log(
+            `[ChatList] Setting up status listeners for ${allParticipantIds.size} participants`
+          )
+          const statusUnsubscribers: (() => void)[] = []
+
+          for (const participantId of allParticipantIds) {
+            const userRef = doc(db, 'users', participantId)
+            const unsubscribe = onSnapshot(
+              userRef,
+              (doc) => {
+                if (doc.exists()) {
+                  const userData = doc.data() as UserProfile
+                  console.log(
+                    `[ChatList] Received status update for ${participantId}:`,
+                    {
+                      displayName: userData.displayName,
+                      status: userData.status,
+                      statusUpdatedAt: userData.statusUpdatedAt
+                    }
+                  )
+
+                  // Update local cache with real-time data
+                  UserCacheService.handleRealtimeUpdate(userData)
+
+                  // Update local state to trigger re-render
+                  setUserProfiles((prev) => {
+                    const newMap = new Map(prev)
+                    newMap.set(participantId, userData)
+                    return newMap
+                  })
+                }
+              },
+              (error) => {
+                console.error(
+                  `[ChatList] Error listening to status for ${participantId}:`,
+                  error
+                )
+              }
+            )
+            statusUnsubscribers.push(unsubscribe)
+          }
+
+          // Store status unsubscribers for cleanup
+          ;(window as any).statusUnsubscribers = statusUnsubscribers
         }
 
         // Fetch user memberships for read status

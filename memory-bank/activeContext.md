@@ -324,6 +324,14 @@
   - **Messages Page Fix**: Added useFocusEffect to clear UserCacheService cache when screen comes into focus
   - **Files Updated**: contexts/AuthContext.tsx, app/(tabs)/contacts.tsx, app/(tabs)/index.tsx
   - **Result**: Status updates now display immediately across all screens with proper cache invalidation
+- **Real-Time Status Updates**: ✅ COMPLETED - Implemented Firestore listeners for instant status updates
+  - **Problem**: Status updates only visible after reloading messages screen
+  - **Solution**: Added real-time Firestore listeners for participant profiles in messages screen
+  - **Implementation**: onSnapshot listeners for all conversation participants with proper cleanup
+  - **Cache Integration**: Enhanced UserCacheService with handleRealtimeUpdate method for efficient cache management
+  - **Error Handling**: Added comprehensive error handling for listener failures
+  - **Files Updated**: app/(tabs)/index.tsx, services/userCacheService.ts
+  - **Result**: Status updates now appear instantly across all users without requiring screen reload
 
 ## Current State
 
