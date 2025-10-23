@@ -27,6 +27,42 @@ export interface ReadReceipt {
   senderPhotoURL?: string
 }
 
+export interface CulturalContext {
+  hasNuance: boolean
+  hint: string
+  whyDiffers?: string
+}
+
+export interface FormalityAlternatives {
+  casual: string
+  neutral: string
+  formal: string
+}
+
+export interface Formality {
+  detected: 'casual' | 'neutral' | 'formal'
+  alternatives: FormalityAlternatives
+}
+
+export interface IdiomExplanation {
+  phrase: string
+  type: 'idiom' | 'slang'
+  meaning: string
+  example?: string
+}
+
+export interface Translation {
+  messageId: string
+  targetLanguage: string
+  translatedText: string
+  detectedSourceLanguage: string
+  culturalContext?: CulturalContext
+  formality?: Formality
+  idioms?: IdiomExplanation[]
+  translatedAt: Date
+  translatedBy: string[] // User IDs who have requested this translation
+}
+
 export interface Message {
   id: string
   conversationId: string
@@ -44,10 +80,8 @@ export interface Message {
   }
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   replyTo?: string // ID of message being replied to
-  translatedText?: string
-  detectedLanguage?: string
-  translatedTo?: string
-  isTranslating?: boolean
+  detectedLanguage?: string // Source language of original message (detected once)
+  isTranslating?: boolean // Only used for UI state during active translation
   readBy?: ReadReceipt[] // Array of users who've read this message (for group chats)
 }
 
@@ -93,7 +127,8 @@ export const COLLECTIONS = {
   MEMBERSHIPS: 'memberships',
   USERS: 'users',
   CONTACTS: 'contacts',
-  READ_RECEIPTS: 'readReceipts'
+  READ_RECEIPTS: 'readReceipts',
+  TRANSLATIONS: 'translations' // Subcollection under messages
 } as const
 
 // Message status types

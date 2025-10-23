@@ -1,7 +1,9 @@
 import ImageViewer from '@/components/ImageViewer'
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator'
 import { GroupMembersModal } from '@/components/GroupMembersModal'
+import { TranslationMetadataModal } from '@/components/TranslationMetadataModal'
 import { useAuth } from '@/contexts/AuthContext'
+import { db } from '@/firebaseConfig'
 import { ImageService } from '@/services/imageService'
 import { MessagingService } from '@/services/messagingService'
 import { NetworkService, NetworkState } from '@/services/networkService'
@@ -10,7 +12,8 @@ import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { TranslateService } from '@/services/translateService'
 import { TypingService, TypingUser } from '@/services/typingService'
-import { Conversation, Message, UserProfile } from '@/types/messaging'
+import { Conversation, Message, UserProfile, Translation } from '@/types/messaging'
+import { doc, updateDoc } from 'firebase/firestore'
 import { Ionicons } from '@expo/vector-icons'
 import { FlashList } from '@shopify/flash-list'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -64,7 +67,10 @@ export default function ChatScreen() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [groupMembersModalVisible, setGroupMembersModalVisible] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [translations, setTranslations] = useState<Map<string, any>>(new Map())
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
+  const [translationMetadataModalVisible, setTranslationMetadataModalVisible] = useState(false)
+  const [selectedTranslationMetadata, setSelectedTranslationMetadata] = useState<Translation | null>(null)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(
     null
   )
@@ -76,6 +82,9 @@ export default function ChatScreen() {
   >(new Map())
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
+  const translatedMessages = useRef<Set<string>>(new Set()) // Track translated messages to prevent re-translation
+  const transatingMessagesLocal = useRef<Set<string>>(new Set()) // Track which messages are currently translating (for UI spinner)
+  const loadedTranslations = useRef<Set<string>>(new Set()) // Track translations already loaded to parent
   const textInputRef = useRef<TextInput>(null)
   const shouldAutoScrollRef = useRef(true)
   const isUserScrollingRef = useRef(false)
@@ -91,58 +100,88 @@ export default function ChatScreen() {
   // Handle auto-translation of messages
   const handleAutoTranslation = useCallback(
     async (message: Message) => {
-      if (!userProfile?.preferredLanguage) {
+      if (!userProfile?.preferredLanguage || !user?.uid) {
         return
       }
 
+      // Mark as translated IMMEDIATELY to prevent race conditions with Firestore listener
+      translatedMessages.current.add(message.id)
       // Add to translating set to prevent duplicate attempts
       translatingMessages.current.add(message.id)
 
       try {
-        // Set translating flag
-        await MessagingService.setMessageTranslating(message.id, true)
+        // Set translating flag in LOCAL ref only (don't write to Firestore to avoid broadcasting to all users)
+        // Use ref instead of state to avoid re-renders during translation
+        transatingMessagesLocal.current.add(message.id)
 
-        // Translate directly - let the service handle language detection
-        const translationResult = await TranslateService.translateMessage(
-          message.text,
-          userProfile.preferredLanguage
-        )
-
-        // Extract the translated text properly
-        const translatedTextString =
-          translationResult.message?.content?.translated_text ||
-          translationResult.translatedText ||
-          translationResult.message
-
-        // Extract the detected source language from the response
-        const detectedSourceLang =
-          translationResult.source_lang_detected ||
-          translationResult.sourceLangDetected ||
-          t(locale, 'chat.autoDetectedLanguage')
-
-        // Update message with translation
-        await MessagingService.updateMessageTranslation(
+        // Use new translateAndStore method that:
+        // 1. Checks Firestore for existing translation
+        // 2. Calls N8N if not found
+        // 3. Stores translation in subcollection with AI features
+        const translationResult = await TranslateService.translateAndStore(
           message.id,
-          translatedTextString,
-          detectedSourceLang,
-          userProfile.preferredLanguage
+          message.text,
+          userProfile.preferredLanguage,
+          user.uid
         )
+
+        // 🔍 LOG: What did translateAndStore return?
+        console.log('📖 [ChatScreen.handleAutoTranslation] Translation result from service:', {
+          messageId: message.id,
+          translatedTextType: typeof translationResult.translatedText,
+          translatedTextValue: translationResult.translatedText,
+          translatedTextKeys: typeof translationResult.translatedText === 'object'
+            ? Object.keys(translationResult.translatedText)
+            : 'N/A',
+          fullResult: translationResult
+        })
+
+        // 🚨 RUNTIME VALIDATION: Ensure we don't save bad data to state
+        if (typeof translationResult.translatedText !== 'string') {
+          console.error('🚨 [ChatScreen] INVALID TRANSLATION RESULT!', {
+            messageId: message.id,
+            type: typeof translationResult.translatedText,
+            value: translationResult.translatedText,
+            problem: 'translateAndStore returned translatedText as object instead of string'
+          })
+          throw new Error('Invalid translation result - translatedText must be a string')
+        }
+
+        console.log('✅ [ChatScreen] Translation result is valid, saving to state')
+
+        // Update message with detected source language (stored once, shared across users)
+        if (!message.detectedLanguage) {
+          await updateDoc(doc(db, 'messages', message.id), {
+            detectedLanguage: translationResult.detectedSourceLanguage
+          })
+        }
+
+        // Update translations state to prevent re-translating the same message
+        setTranslations((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(message.id, translationResult)
+          return newMap
+        })
 
         // Remove from translating set when complete
         translatingMessages.current.delete(message.id)
-      } catch {
-        // Clear translating flag on error
-        try {
-          await MessagingService.setMessageTranslating(message.id, false)
-        } catch {
-          // Silent fail on error clearing
-        }
+
+        // Clear translating flag from LOCAL ref when translation completes
+        transatingMessagesLocal.current.delete(message.id)
+      } catch (error) {
+        console.error('Error translating message:', error)
+
+        // Clear translating flag from LOCAL ref on error
+        transatingMessagesLocal.current.delete(message.id)
+
+        // On error, remove from translated set so it can be retried
+        translatedMessages.current.delete(message.id)
 
         // Remove from translating set on error
         translatingMessages.current.delete(message.id)
       }
     },
-    [userProfile?.preferredLanguage]
+    [userProfile?.preferredLanguage, user?.uid]
   )
 
   // Platform-specific keyboard handling functions
@@ -194,6 +233,11 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!user || !id) return
 
+    // Clear translated messages set when conversation changes
+    translatedMessages.current.clear()
+    translatingMessages.current.clear()
+    transatingMessagesLocal.current.clear()
+    loadedTranslations.current.clear()
 
     // Initialize network service
     NetworkService.initialize()
@@ -276,13 +320,13 @@ export default function ChatScreen() {
           // Auto-translate new messages if user has auto-translate enabled
           if (userProfile?.autoTranslate && userProfile?.preferredLanguage) {
             // Filter and get only the most recent message that needs translation
+            // Use translatedMessages ref instead of state to avoid race conditions
             const messagesToTranslate = updatedMessages
               .filter(
                 (msg) =>
                   msg.type === 'text' &&
                   msg.senderId !== user.uid &&
-                  !msg.translatedText &&
-                  !msg.isTranslating &&
+                  !translatedMessages.current.has(msg.id) && // Use ref for immediate check
                   !translatingMessages.current.has(msg.id)
               )
               .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Most recent first
@@ -305,8 +349,9 @@ export default function ChatScreen() {
     }
     loadQueuedMessages()
 
-    // Copy ref to variable for use in cleanup function
+    // Copy refs to variables for use in cleanup function
     const translatingSet = translatingMessages.current
+    const translatedSet = translatedMessages.current
 
     return () => {
       unsubscribe()
@@ -329,8 +374,10 @@ export default function ChatScreen() {
         clearTimeout(typingTimeout)
       }
 
-      // Clear translation tracking set
+      // Clear translation tracking sets
       translatingSet.clear()
+      translatedSet.clear()
+      transatingMessagesLocal.current.clear()
     }
   }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation])
 
@@ -719,19 +766,28 @@ export default function ChatScreen() {
     return `${hours}:${minutes}`
   }
 
-  // Toggle between original and translated text
+  // Toggle between original and translated text when message text is tapped
   const toggleMessageText = (messageId: string) => {
     setShowOriginalText((prev) => {
       const newMap = new Map(prev)
+      // Toggle the current state for this message
       newMap.set(messageId, !newMap.get(messageId))
       return newMap
     })
   }
 
+  // Handle badge tap to show translation metadata modal
+  const handleTranslationBadgeTap = (messageId: string) => {
+    const translation = translations.get(messageId)
+    if (translation) {
+      setSelectedTranslationMetadata(translation)
+      setTranslationMetadataModalVisible(true)
+    }
+  }
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwnMessage = item.senderId === user?.uid
     const messageTime = formatMessageTime(item.timestamp)
-    const isQueued = queuedMessages.some((q) => q.id === item.id)
 
     // For group messages, determine if we should show sender info
     const allMessages = getAllMessages()
@@ -749,46 +805,6 @@ export default function ChatScreen() {
     const isMostRecentUserMessage =
       userMessages.length > 0 &&
       userMessages[userMessages.length - 1].id === item.id
-
-    const getStatusIcon = (status: string, isQueued: boolean = false) => {
-      if (isQueued) {
-        return '⏳' // Spinner for queued messages
-      }
-
-      switch (status) {
-        case 'sending':
-          return '⏳' // Spinner
-        case 'sent':
-        case 'delivered':
-          return '✓' // Gray checkmark
-        case 'read':
-          return '✓' // Green checkmark (stays green forever)
-        case 'failed':
-          return '✕' // Red X for failed/queued messages
-        default:
-          return ''
-      }
-    }
-
-    const getStatusColor = (status: string, isQueued: boolean = false) => {
-      if (isQueued) {
-        return '#FF9500' // Orange for queued messages
-      }
-
-      switch (status) {
-        case 'sending':
-          return '#FF9500' // Orange
-        case 'sent':
-        case 'delivered':
-          return '#8E8E93' // Gray
-        case 'read':
-          return '#34C759' // Green (stays green forever)
-        case 'failed':
-          return '#FF3B30' // Red for failed/queued messages
-        default:
-          return '#8E8E93'
-      }
-    }
 
     return (
       <View
@@ -841,11 +857,11 @@ export default function ChatScreen() {
           ) : (
             <TouchableOpacity
               onPress={() => {
-                if (item.translatedText && !isOwnMessage) {
+                if (translations.has(item.id) && !isOwnMessage) {
                   toggleMessageText(item.id)
                 }
               }}
-              disabled={!item.translatedText || isOwnMessage}
+              disabled={!translations.has(item.id) || isOwnMessage}
             >
               <Text
                 style={[
@@ -855,37 +871,46 @@ export default function ChatScreen() {
               >
                 {(() => {
                   // Show translated text if available and user preference is to show translations
+                  const translation = translations.get(item.id)
                   if (
-                    item.translatedText &&
+                    translation &&
                     !isOwnMessage &&
                     userProfile?.autoTranslate &&
                     showOriginalText.get(item.id) !== true
                   ) {
-                    // Handle both old format (string) and new format (object)
-                    const translatedText =
-                      typeof item.translatedText === 'string'
-                        ? item.translatedText
-                        : (item.translatedText as any)?.content
-                            ?.translated_text || item.text
-                    return translatedText
+                    // 🔍 LOG: What are we about to render?
+                    console.log('🎨 [ChatScreen.renderMessage] About to render translation:', {
+                      messageId: item.id,
+                      translatedTextType: typeof translation.translatedText,
+                      translatedTextValue: translation.translatedText,
+                      translatedTextKeys: typeof translation.translatedText === 'object'
+                        ? Object.keys(translation.translatedText)
+                        : 'N/A'
+                    })
+
+                    // 🚨 LAST RESORT GUARD: Prevent rendering objects
+                    if (typeof translation.translatedText !== 'string') {
+                      console.error('🚨🚨🚨 [ChatScreen.renderMessage] PREVENTING REACT ERROR!', {
+                        messageId: item.id,
+                        type: typeof translation.translatedText,
+                        value: translation.translatedText,
+                        problem: 'About to render an object in <Text> which will crash React',
+                        action: 'Falling back to original text to prevent crash'
+                      })
+                      // Fall back to original text to prevent crash
+                      return item.text
+                    }
+
+                    console.log('✅ [ChatScreen.renderMessage] Rendering valid translated text')
+                    // translatedText is guaranteed to be a string
+                    return translation.translatedText
                   }
                   return item.text
                 })()}
               </Text>
 
-              {/* Translation indicators */}
-              {item.translatedText && !isOwnMessage && (
-                <View style={styles.translationIndicator}>
-                  <Text style={styles.translationText}>
-                    {showOriginalText.get(item.id) === true
-                      ? t(locale, 'chat.translationToggleHint')
-                      : t(locale, 'chat.translationInfo', { lang: item.detectedLanguage?.toUpperCase() })}
-                  </Text>
-                </View>
-              )}
-
               {/* Translation loading indicator */}
-              {item.isTranslating && !isOwnMessage && (
+              {transatingMessagesLocal.current.has(item.id) && !isOwnMessage && (
                 <View style={styles.translationLoading}>
                   <ActivityIndicator size='small' color='#00A884' />
                   <Text style={styles.translationLoadingText}>
@@ -893,6 +918,20 @@ export default function ChatScreen() {
                   </Text>
                 </View>
               )}
+
+              {/* Translation metadata badge */}
+              {translations.has(item.id) && !isOwnMessage && (
+                <TouchableOpacity
+                  style={styles.translationMetadataBadge}
+                  onPress={() => handleTranslationBadgeTap(item.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.translationMetadataBadgeText}>
+                    🔍 See details
+                  </Text>
+                </TouchableOpacity>
+              )}
+
             </TouchableOpacity>
           )}
           <View style={styles.messageFooter}>
@@ -1264,6 +1303,16 @@ export default function ChatScreen() {
         members={Array.from(participantProfiles.values())}
         title={conversation?.title || 'Group Members'}
       />
+
+      {/* Translation Metadata Modal */}
+      <TranslationMetadataModal
+        visible={translationMetadataModalVisible}
+        translation={selectedTranslationMetadata}
+        onClose={() => {
+          setTranslationMetadataModalVisible(false)
+          setSelectedTranslationMetadata(null)
+        }}
+      />
     </View>
   )
 }
@@ -1608,4 +1657,19 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontStyle: 'italic'
   },
+  translationMetadataBadge: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0, 168, 132, 0.15)',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 168, 132, 0.3)'
+  },
+  translationMetadataBadgeText: {
+    fontSize: 11,
+    color: '#00A884',
+    fontWeight: '500'
+  }
 })

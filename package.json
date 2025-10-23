@@ -12,7 +12,11 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "grep": "ps aux | grep expo",
-    "kill": "pkill -f expo"
+    "kill": "pkill -f expo",
+    "test": "npx tsx __tests__/translateService.test.ts && npx tsx __tests__/translationStorageService.test.ts && npx tsx __tests__/translation-integration.test.ts",
+    "test:translate": "npx tsx __tests__/translateService.test.ts",
+    "test:storage": "npx tsx __tests__/translationStorageService.test.ts",
+    "test:integration": "npx tsx __tests__/translation-integration.test.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

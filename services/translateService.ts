@@ -4,9 +4,17 @@
  * Provides translation functionality by sending requests to the translation webhook endpoint.
  * Uses EXPO_PUBLIC_TRANSLATION_ENDPOINT from process.env or Constants.expoConfig.extra.
  * Handles network errors, JSON parsing, and provides descriptive error messages.
+ *
+ * Integrates with TranslationStorageService for Firestore caching.
  */
 
 import Constants from 'expo-constants'
+import { TranslationStorageService } from './translationStorageService'
+import {
+  CulturalContext,
+  Formality,
+  IdiomExplanation
+} from '@/types/messaging'
 
 export class TranslateService {
   private static readonly TRANSLATION_ENDPOINT = (() => {
@@ -307,6 +315,192 @@ export class TranslateService {
       if (currentTime - value.timestamp >= this.CACHE_TTL) {
         this.cache.delete(key)
       }
+    }
+  }
+
+  /**
+   * Translate a message and store result in Firestore
+   * Enhanced version that stores in translations subcollection
+   *
+   * @param messageId - The message ID to store translation under
+   * @param text - The text to translate
+   * @param targetLanguage - Target language code
+   * @param userId - User ID requesting translation
+   * @param sourceLanguage - Source language (or 'auto' for detection)
+   * @returns Complete translation object with AI features
+   */
+  static async translateAndStore(
+    messageId: string,
+    text: string,
+    targetLanguage: string,
+    userId: string,
+    sourceLanguage: string = 'auto'
+  ): Promise<{
+    translatedText: string
+    detectedSourceLanguage: string
+    culturalContext?: CulturalContext
+    formality?: Formality
+    idioms?: IdiomExplanation[]
+  }> {
+    try {
+      // Check if translation already exists in Firestore
+      const existingTranslation =
+        await TranslationStorageService.getTranslation(messageId, targetLanguage)
+
+      if (existingTranslation) {
+        console.log(
+          `✅ [TranslateService] Found cached translation for message ${messageId} in ${targetLanguage}`
+        )
+
+        // 🔍 LOG: What did we get from cache?
+        console.log('📖 [TranslateService.translateAndStore] Cached translation:', {
+          messageId,
+          translatedTextType: typeof existingTranslation.translatedText,
+          translatedTextValue: existingTranslation.translatedText,
+          translatedTextKeys: typeof existingTranslation.translatedText === 'object'
+            ? Object.keys(existingTranslation.translatedText)
+            : 'N/A'
+        })
+
+        // 🚨 RUNTIME VALIDATION: Ensure cached data is valid
+        if (typeof existingTranslation.translatedText !== 'string') {
+          console.error('🚨 [TranslateService] INVALID CACHED DATA!', {
+            messageId,
+            type: typeof existingTranslation.translatedText,
+            value: existingTranslation.translatedText,
+            problem: 'Cached translatedText should be a string but is an object'
+          })
+          // Don't return bad data - this will fall through to re-translate
+          // (setting existingTranslation to null would work, but falling through is cleaner)
+        } else {
+          // ✅ Valid cached data
+          console.log('✅ [TranslateService] Returning valid cached translation')
+
+          // Add current user to list of requesters
+          await TranslationStorageService.addTranslationRequester(
+            messageId,
+            targetLanguage,
+            userId
+          )
+
+          return {
+            translatedText: existingTranslation.translatedText,
+            detectedSourceLanguage: existingTranslation.detectedSourceLanguage,
+            culturalContext: existingTranslation.culturalContext,
+            formality: existingTranslation.formality,
+            idioms: existingTranslation.idioms
+          }
+        }
+      }
+
+      // Call N8N webhook for translation with AI features
+      const translationResult = await this.translateMessage(text, targetLanguage)
+
+      // 🔍 LOG: What did N8N return?
+      console.log('📡 [TranslateService] N8N Response:', {
+        hasTranslatedText: !!translationResult.translatedText,
+        translatedTextType: typeof translationResult.translatedText,
+        hasContent: !!translationResult.translatedText?.content,
+        contentKeys: translationResult.translatedText?.content ? Object.keys(translationResult.translatedText.content) : 'N/A',
+        hasTranslatedTextString: !!translationResult.translatedText?.content?.translated_text,
+        fullResponse: JSON.stringify(translationResult, null, 2)
+      })
+
+      // Handle nested structure from N8N (message.content.* or translatedText.content.*) or flat structure
+      let translatedTextString: string
+      let detectedSourceLang: string
+      let culturalContext: CulturalContext | undefined
+      let formality: Formality | undefined
+      let idioms: IdiomExplanation[] | undefined
+
+      // Check NEW N8N format: message.content.* (current live N8N response)
+      if (translationResult.message?.content) {
+        const content = translationResult.message.content
+
+        // Extract from content object (where the actual translation data is)
+        translatedTextString = content.translated_text
+        detectedSourceLang = content.source_lang_detected || sourceLanguage
+        culturalContext = content.cultural_context || undefined
+        formality = content.formality || undefined
+        idioms = content.idioms || undefined
+
+        console.log('✅ [TranslateService] Parsed NEW N8N format (message.content.*)')
+      }
+      // Check OLD format: translatedText.content.* (old Firestore data or different N8N version)
+      else if (translationResult.translatedText?.content) {
+        const content = translationResult.translatedText.content
+
+        // Extract from content object (where the actual translation data is)
+        translatedTextString = content.translated_text
+        detectedSourceLang = content.source_lang_detected || sourceLanguage
+        culturalContext = content.cultural_context || undefined
+        formality = content.formality || undefined
+        idioms = content.idioms || undefined
+
+        console.log('✅ [TranslateService] Parsed OLD format (translatedText.content.*)')
+      } else if (typeof translationResult.translatedText === 'string') {
+        // Direct string value (simplest case)
+        translatedTextString = translationResult.translatedText
+        detectedSourceLang = translationResult.source_lang_detected || translationResult.sourceLangDetected || sourceLanguage
+        culturalContext = translationResult.cultural_context || undefined
+        formality = translationResult.formality || undefined
+        idioms = translationResult.idioms || undefined
+
+        console.log('✅ [TranslateService] Parsed direct string response')
+      } else {
+        // Fallback to flat structure for backwards compatibility
+        translatedTextString =
+          translationResult.translated_text ||
+          translationResult.message ||
+          'Translation unavailable'
+
+        detectedSourceLang =
+          translationResult.source_lang_detected ||
+          translationResult.sourceLangDetected ||
+          sourceLanguage
+
+        culturalContext = translationResult.cultural_context || undefined
+        formality = translationResult.formality || undefined
+        idioms = translationResult.idioms || undefined
+
+        console.log('✅ [TranslateService] Parsed flat response structure')
+      }
+
+      // CRITICAL: Verify we extracted a string, not an object
+      if (typeof translatedTextString !== 'string') {
+        console.error('❌ [TranslateService] translatedTextString is not a string!', {
+          type: typeof translatedTextString,
+          value: translatedTextString,
+          originalResponse: translationResult
+        })
+        throw new Error(
+          `Translation parsing error: Expected string but got ${typeof translatedTextString}. ` +
+          `This would cause "Objects are not valid as a React child" error.`
+        )
+      }
+
+      // Store in Firestore
+      await TranslationStorageService.saveTranslation(
+        messageId,
+        targetLanguage,
+        translatedTextString,
+        detectedSourceLang,
+        userId,
+        culturalContext,
+        formality,
+        idioms
+      )
+
+      return {
+        translatedText: translatedTextString,
+        detectedSourceLanguage: detectedSourceLang,
+        culturalContext,
+        formality,
+        idioms
+      }
+    } catch (error) {
+      console.error('[TranslateService] Error in translateAndStore:', error)
+      throw error
     }
   }
 
