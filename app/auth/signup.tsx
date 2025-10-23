@@ -1,3 +1,4 @@
+import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
 import { Link, router } from 'expo-router'
 import React, { useState } from 'react'
@@ -63,11 +64,10 @@ export default function SignupScreen() {
           <Text style={styles.subtitle}>Join Babel and start chatting</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Display Name</Text>
             <TextInput
               style={styles.input}
               placeholder='Enter your display name'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={displayName}
               onChangeText={setDisplayName}
               autoCapitalize='words'
@@ -75,11 +75,10 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
               placeholder='Enter your email'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={email}
               onChangeText={setEmail}
               keyboardType='email-address'
@@ -89,11 +88,10 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
               placeholder='Enter your password (min 6 characters)'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -102,11 +100,10 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirm Password</Text>
             <TextInput
               style={styles.input}
               placeholder='Confirm your password'
-              placeholderTextColor='#999'
+              placeholderTextColor={WhatsAppColors.lightText}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -140,7 +137,8 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    backgroundColor: WhatsAppColors.background
   },
   scrollContainer: {
     flexGrow: 1,
@@ -153,40 +151,40 @@ const styles = StyleSheet.create({
     alignSelf: 'center'
   },
   title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: WhatsAppColors.text,
     textAlign: 'center',
     marginBottom: 8
   },
   subtitle: {
+    fontSize: 16,
+    color: WhatsAppColors.lightText,
     textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.7
+    marginBottom: 32
   },
   inputContainer: {
     marginBottom: 20
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333'
-  },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: WhatsAppColors.border,
+    borderRadius: 10,
+    padding: 16,
     fontSize: 16,
-    backgroundColor: '#fff'
+    backgroundColor: WhatsAppColors.darkBackground,
+    color: WhatsAppColors.text
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: WhatsAppColors.secondary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     marginTop: 8
   },
   buttonDisabled: {
-    backgroundColor: '#ccc'
+    backgroundColor: WhatsAppColors.secondary,
+    opacity: 0.5
   },
   buttonText: {
     color: '#fff',
@@ -199,10 +197,11 @@ const styles = StyleSheet.create({
     marginTop: 24
   },
   linkText: {
-    fontSize: 16
+    fontSize: 16,
+    color: WhatsAppColors.lightText
   },
   link: {
-    color: '#007AFF',
+    color: WhatsAppColors.secondary,
     fontSize: 16,
     fontWeight: '600'
   }
