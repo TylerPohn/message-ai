@@ -1,4 +1,4 @@
-// Data models for MessageAI messaging system
+// Data models for Babel messaging system
 
 export interface Conversation {
   id: string

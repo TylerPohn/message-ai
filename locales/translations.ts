@@ -1,5 +1,5 @@
 /**
- * Translation system for MessageAI
+ * Translation system for Babel
  * Supports: en, es, fr, de, it, pt, ru, uk, ja, ko, zh, ar, hi, th, vi, nl
  */
 
@@ -306,7 +306,7 @@ export const translations = {
       login: {
         loading: 'Loading...',
         title: 'Welcome Back',
-        subtitle: 'Sign in to your MessageAI account',
+        subtitle: 'Sign in to your Babel account',
         emailPlaceholder: 'Enter your email',
         passwordPlaceholder: 'Enter your password',
         signingInButton: 'Signing In...',
@@ -328,7 +328,7 @@ export const translations = {
       },
       signup: {
         title: 'Create Account',
-        subtitle: 'Join MessageAI and start chatting',
+        subtitle: 'Join Babel and start chatting',
         displayNameLabel: 'Display Name',
         displayNamePlaceholder: 'Enter your display name',
         emailLabel: 'Email',
@@ -356,7 +356,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Loading conversations...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Camera',
       cameraAlertMessage: 'Camera feature coming soon!',
       emptyStateTitle: 'No conversations yet',
@@ -424,7 +424,7 @@ export const translations = {
       avatarUploadError: 'Failed to upload avatar. Please try again.',
       avatarSuccessTitle: 'Success',
       avatarSuccessMessage: 'Avatar updated successfully!',
-      defaultStatus: 'Hey there! I am using MessageAI',
+      defaultStatus: 'Hey there! I am using Babel',
       profileNameFallback: 'Unknown User',
     },
     contacts: {
@@ -575,7 +575,7 @@ export const translations = {
       login: {
         loading: 'Cargando...',
         title: 'Bienvenido de Nuevo',
-        subtitle: 'Inicia sesión en tu cuenta de MessageAI',
+        subtitle: 'Inicia sesión en tu cuenta de Babel',
         emailPlaceholder: 'Ingresa tu correo electrónico',
         passwordPlaceholder: 'Ingresa tu contraseña',
         signingInButton: 'Iniciando sesión...',
@@ -597,7 +597,7 @@ export const translations = {
       },
       signup: {
         title: 'Crear Cuenta',
-        subtitle: 'Únete a MessageAI y comienza a chatear',
+        subtitle: 'Únete a Babel y comienza a chatear',
         displayNameLabel: 'Nombre de Pantalla',
         displayNamePlaceholder: 'Ingresa tu nombre de pantalla',
         emailLabel: 'Correo Electrónico',
@@ -625,7 +625,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Cargando conversaciones...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Cámara',
       cameraAlertMessage: '¡La función de cámara pronto estará disponible!',
       emptyStateTitle: 'Sin conversaciones aún',
@@ -693,7 +693,7 @@ export const translations = {
       avatarUploadError: 'Fallo al cargar el avatar. Por favor intenta de nuevo.',
       avatarSuccessTitle: 'Éxito',
       avatarSuccessMessage: '¡Avatar actualizado con éxito!',
-      defaultStatus: 'Hola! Estoy usando MessageAI',
+      defaultStatus: 'Hola! Estoy usando Babel',
       profileNameFallback: 'Usuario Desconocido',
     },
     contacts: {
@@ -844,7 +844,7 @@ export const translations = {
       login: {
         loading: 'Chargement...',
         title: 'Bienvenue',
-        subtitle: 'Connectez-vous à votre compte MessageAI',
+        subtitle: 'Connectez-vous à votre compte Babel',
         emailPlaceholder: 'Entrez votre adresse e-mail',
         passwordPlaceholder: 'Entrez votre mot de passe',
         signingInButton: 'Connexion en cours...',
@@ -866,7 +866,7 @@ export const translations = {
       },
       signup: {
         title: 'Créer un Compte',
-        subtitle: 'Rejoignez MessageAI et commencez à discuter',
+        subtitle: 'Rejoignez Babel et commencez à discuter',
         displayNameLabel: 'Nom d\'Affichage',
         displayNamePlaceholder: 'Entrez votre nom d\'affichage',
         emailLabel: 'Adresse E-mail',
@@ -894,7 +894,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Chargement des conversations...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Caméra',
       cameraAlertMessage: 'La fonction caméra arrivera bientôt!',
       emptyStateTitle: 'Aucune conversation pour le moment',
@@ -962,7 +962,7 @@ export const translations = {
       avatarUploadError: 'Échec du téléchargement de l\'avatar. Veuillez réessayer.',
       avatarSuccessTitle: 'Succès',
       avatarSuccessMessage: 'Avatar mis à jour avec succès!',
-      defaultStatus: 'Salut! J\'utilise MessageAI',
+      defaultStatus: 'Salut! J\'utilise Babel',
       profileNameFallback: 'Utilisateur Inconnu',
     },
     contacts: {
@@ -1113,7 +1113,7 @@ export const translations = {
       login: {
         loading: 'Wird geladen...',
         title: 'Willkommen zurück',
-        subtitle: 'Melden Sie sich bei Ihrem MessageAI-Konto an',
+        subtitle: 'Melden Sie sich bei Ihrem Babel-Konto an',
         emailPlaceholder: 'Geben Sie Ihre E-Mail-Adresse ein',
         passwordPlaceholder: 'Geben Sie Ihr Passwort ein',
         signingInButton: 'Melden Sie sich an...',
@@ -1135,7 +1135,7 @@ export const translations = {
       },
       signup: {
         title: 'Konto erstellen',
-        subtitle: 'Treten Sie MessageAI bei und beginnen Sie zu chatten',
+        subtitle: 'Treten Sie Babel bei und beginnen Sie zu chatten',
         displayNameLabel: 'Anzeigename',
         displayNamePlaceholder: 'Geben Sie Ihren Anzeigenamen ein',
         emailLabel: 'E-Mail',
@@ -1163,7 +1163,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Unterhaltungen werden geladen...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Kamera',
       cameraAlertMessage: 'Die Kamerafunktion kommt bald!',
       emptyStateTitle: 'Noch keine Unterhaltungen',
@@ -1231,7 +1231,7 @@ export const translations = {
       avatarUploadError: 'Fehler beim Hochladen des Avatars. Bitte versuchen Sie es erneut.',
       avatarSuccessTitle: 'Erfolg',
       avatarSuccessMessage: 'Avatar erfolgreich aktualisiert!',
-      defaultStatus: 'Hallo! Ich benutze MessageAI',
+      defaultStatus: 'Hallo! Ich benutze Babel',
       profileNameFallback: 'Unbekannter Benutzer',
     },
     contacts: {
@@ -1382,7 +1382,7 @@ export const translations = {
       login: {
         loading: 'Caricamento...',
         title: 'Bentornato',
-        subtitle: 'Accedi al tuo account MessageAI',
+        subtitle: 'Accedi al tuo account Babel',
         emailPlaceholder: 'Inserisci la tua email',
         passwordPlaceholder: 'Inserisci la tua password',
         signingInButton: 'Accesso in corso...',
@@ -1404,7 +1404,7 @@ export const translations = {
       },
       signup: {
         title: 'Crea Account',
-        subtitle: 'Unisciti a MessageAI e inizia a chattare',
+        subtitle: 'Unisciti a Babel e inizia a chattare',
         displayNameLabel: 'Nome Visualizzato',
         displayNamePlaceholder: 'Inserisci il tuo nome visualizzato',
         emailLabel: 'Email',
@@ -1432,7 +1432,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Caricamento conversazioni...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Fotocamera',
       cameraAlertMessage: 'La funzione fotocamera arriverà presto!',
       emptyStateTitle: 'Nessuna conversazione ancora',
@@ -1500,7 +1500,7 @@ export const translations = {
       avatarUploadError: 'Errore durante il caricamento dell\'avatar. Per favore riprova.',
       avatarSuccessTitle: 'Successo',
       avatarSuccessMessage: 'Avatar aggiornato con successo!',
-      defaultStatus: 'Ciao! Sto usando MessageAI',
+      defaultStatus: 'Ciao! Sto usando Babel',
       profileNameFallback: 'Utente Sconosciuto',
     },
     contacts: {
@@ -1651,7 +1651,7 @@ export const translations = {
       login: {
         loading: 'Carregando...',
         title: 'Bem-vindo de volta',
-        subtitle: 'Faça login em sua conta MessageAI',
+        subtitle: 'Faça login em sua conta Babel',
         emailPlaceholder: 'Digite seu e-mail',
         passwordPlaceholder: 'Digite sua senha',
         signingInButton: 'Fazendo login...',
@@ -1673,7 +1673,7 @@ export const translations = {
       },
       signup: {
         title: 'Criar Conta',
-        subtitle: 'Junte-se ao MessageAI e comece a conversar',
+        subtitle: 'Junte-se ao Babel e comece a conversar',
         displayNameLabel: 'Nome de Exibição',
         displayNamePlaceholder: 'Digite seu nome de exibição',
         emailLabel: 'E-mail',
@@ -1701,7 +1701,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Carregando conversas...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Câmera',
       cameraAlertMessage: 'O recurso de câmera em breve!',
       emptyStateTitle: 'Nenhuma conversa ainda',
@@ -1769,7 +1769,7 @@ export const translations = {
       avatarUploadError: 'Falha ao fazer upload do avatar. Por favor, tente novamente.',
       avatarSuccessTitle: 'Sucesso',
       avatarSuccessMessage: 'Avatar atualizado com sucesso!',
-      defaultStatus: 'Oi! Estou usando MessageAI',
+      defaultStatus: 'Oi! Estou usando Babel',
       profileNameFallback: 'Usuário Desconhecido',
     },
     contacts: {
@@ -1920,7 +1920,7 @@ export const translations = {
       login: {
         loading: 'Загрузка...',
         title: 'Добро пожаловать обратно',
-        subtitle: 'Войдите в свою учетную запись MessageAI',
+        subtitle: 'Войдите в свою учетную запись Babel',
         emailPlaceholder: 'Введите свой адрес электронной почты',
         passwordPlaceholder: 'Введите свой пароль',
         signingInButton: 'Вход в процессе...',
@@ -1942,7 +1942,7 @@ export const translations = {
       },
       signup: {
         title: 'Создать учетную запись',
-        subtitle: 'Присоединитесь к MessageAI и начните общаться',
+        subtitle: 'Присоединитесь к Babel и начните общаться',
         displayNameLabel: 'Отображаемое имя',
         displayNamePlaceholder: 'Введите свое отображаемое имя',
         emailLabel: 'Адрес электронной почты',
@@ -1970,7 +1970,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Загрузка диалогов...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Камера',
       cameraAlertMessage: 'Функция камеры скоро!',
       emptyStateTitle: 'Нет диалогов',
@@ -2038,7 +2038,7 @@ export const translations = {
       avatarUploadError: 'Ошибка при загрузке аватара. Попробуйте снова.',
       avatarSuccessTitle: 'Успешно',
       avatarSuccessMessage: 'Аватар успешно обновлен!',
-      defaultStatus: 'Привет! Я использую MessageAI',
+      defaultStatus: 'Привет! Я использую Babel',
       profileNameFallback: 'Неизвестный пользователь',
     },
     contacts: {
@@ -2189,7 +2189,7 @@ export const translations = {
       login: {
         loading: 'Завантаження...',
         title: 'Ласкаво просимо назад',
-        subtitle: 'Увійдіть до своєї учетної записи MessageAI',
+        subtitle: 'Увійдіть до своєї учетної записи Babel',
         emailPlaceholder: 'Введіть свою електронну адресу',
         passwordPlaceholder: 'Введіть свій пароль',
         signingInButton: 'Вхід у процесі...',
@@ -2211,7 +2211,7 @@ export const translations = {
       },
       signup: {
         title: 'Створити обліковий запис',
-        subtitle: 'Приєднайтеся до MessageAI і почніть спілкуватися',
+        subtitle: 'Приєднайтеся до Babel і почніть спілкуватися',
         displayNameLabel: 'Ім\'я для відображення',
         displayNamePlaceholder: 'Введіть своє ім\'я для відображення',
         emailLabel: 'Електронна адреса',
@@ -2239,7 +2239,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Завантаження діалогів...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Камера',
       cameraAlertMessage: 'Функція камери скоро!',
       emptyStateTitle: 'Немає діалогів',
@@ -2307,7 +2307,7 @@ export const translations = {
       avatarUploadError: 'Помилка при завантаженні аватара. Спробуйте ще раз.',
       avatarSuccessTitle: 'Успіх',
       avatarSuccessMessage: 'Аватар успішно оновлено!',
-      defaultStatus: 'Привіт! Я використовую MessageAI',
+      defaultStatus: 'Привіт! Я використовую Babel',
       profileNameFallback: 'Невідомий користувач',
     },
     contacts: {
@@ -2458,7 +2458,7 @@ export const translations = {
       login: {
         loading: '読み込み中...',
         title: 'おかえりなさい',
-        subtitle: 'MessageAIアカウントにログインしてください',
+        subtitle: 'Babelアカウントにログインしてください',
         emailPlaceholder: 'メールアドレスを入力してください',
         passwordPlaceholder: 'パスワードを入力してください',
         signingInButton: 'ログイン中...',
@@ -2480,7 +2480,7 @@ export const translations = {
       },
       signup: {
         title: 'アカウントを作成',
-        subtitle: 'MessageAIに参加してチャットを開始',
+        subtitle: 'Babelに参加してチャットを開始',
         displayNameLabel: '表示名',
         displayNamePlaceholder: '表示名を入力してください',
         emailLabel: 'メールアドレス',
@@ -2508,7 +2508,7 @@ export const translations = {
     },
     chats: {
       loadingText: '会話を読み込み中...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'カメラ',
       cameraAlertMessage: 'カメラ機能はまもなく!',
       emptyStateTitle: 'まだ会話はありません',
@@ -2576,7 +2576,7 @@ export const translations = {
       avatarUploadError: 'アバターのアップロードに失敗しました。もう一度お試しください。',
       avatarSuccessTitle: '成功',
       avatarSuccessMessage: 'アバターが正常に更新されました！',
-      defaultStatus: 'やあ！MessageAIを使っています',
+      defaultStatus: 'やあ！Babelを使っています',
       profileNameFallback: '不明なユーザー',
     },
     contacts: {
@@ -2727,7 +2727,7 @@ export const translations = {
       login: {
         loading: '로딩 중...',
         title: '다시 오신 것을 환영합니다',
-        subtitle: 'MessageAI 계정에 로그인하세요',
+        subtitle: 'Babel 계정에 로그인하세요',
         emailPlaceholder: '이메일을 입력하세요',
         passwordPlaceholder: '비밀번호를 입력하세요',
         signingInButton: '로그인 중...',
@@ -2749,7 +2749,7 @@ export const translations = {
       },
       signup: {
         title: '계정 만들기',
-        subtitle: 'MessageAI에 가입하고 채팅을 시작하세요',
+        subtitle: 'Babel에 가입하고 채팅을 시작하세요',
         displayNameLabel: '표시 이름',
         displayNamePlaceholder: '표시 이름을 입력하세요',
         emailLabel: '이메일',
@@ -2777,7 +2777,7 @@ export const translations = {
     },
     chats: {
       loadingText: '대화 로딩 중...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: '카메라',
       cameraAlertMessage: '카메라 기능이 곧 제공될 예정입니다!',
       emptyStateTitle: '아직 대화가 없습니다',
@@ -2845,7 +2845,7 @@ export const translations = {
       avatarUploadError: '아바타 업로드 실패. 다시 시도해주세요.',
       avatarSuccessTitle: '성공',
       avatarSuccessMessage: '아바타가 성공적으로 업데이트되었습니다!',
-      defaultStatus: '안녕하세요! MessageAI를 사용 중입니다',
+      defaultStatus: '안녕하세요! Babel를 사용 중입니다',
       profileNameFallback: '알 수 없는 사용자',
     },
     contacts: {
@@ -2996,7 +2996,7 @@ export const translations = {
       login: {
         loading: '加载中...',
         title: '欢迎回来',
-        subtitle: '登录到您的 MessageAI 账户',
+        subtitle: '登录到您的 Babel 账户',
         emailPlaceholder: '输入您的电子邮件',
         passwordPlaceholder: '输入您的密码',
         signingInButton: '登录中...',
@@ -3018,7 +3018,7 @@ export const translations = {
       },
       signup: {
         title: '创建账户',
-        subtitle: '加入 MessageAI 并开始聊天',
+        subtitle: '加入 Babel 并开始聊天',
         displayNameLabel: '显示名称',
         displayNamePlaceholder: '输入您的显示名称',
         emailLabel: '电子邮件',
@@ -3046,7 +3046,7 @@ export const translations = {
     },
     chats: {
       loadingText: '正在加载对话...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: '相机',
       cameraAlertMessage: '相机功能即将推出!',
       emptyStateTitle: '还没有对话',
@@ -3114,7 +3114,7 @@ export const translations = {
       avatarUploadError: '上传头像失败。请重试。',
       avatarSuccessTitle: '成功',
       avatarSuccessMessage: '头像已成功更新！',
-      defaultStatus: '嗨！我正在使用 MessageAI',
+      defaultStatus: '嗨！我正在使用 Babel',
       profileNameFallback: '未知用户',
     },
     contacts: {
@@ -3265,7 +3265,7 @@ export const translations = {
       login: {
         loading: 'جاري التحميل...',
         title: 'أهلا وسهلا بعودتك',
-        subtitle: 'قم بتسجيل الدخول إلى حسابك في MessageAI',
+        subtitle: 'قم بتسجيل الدخول إلى حسابك في Babel',
         emailPlaceholder: 'أدخل بريدك الإلكتروني',
         passwordPlaceholder: 'أدخل كلمة المرور الخاصة بك',
         signingInButton: 'جاري تسجيل الدخول...',
@@ -3287,7 +3287,7 @@ export const translations = {
       },
       signup: {
         title: 'إنشاء حساب',
-        subtitle: 'انضم إلى MessageAI وابدأ الدردشة',
+        subtitle: 'انضم إلى Babel وابدأ الدردشة',
         displayNameLabel: 'اسم العرض',
         displayNamePlaceholder: 'أدخل اسم العرض الخاص بك',
         emailLabel: 'البريد الإلكتروني',
@@ -3315,7 +3315,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'جاري تحميل المحادثات...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'الكاميرا',
       cameraAlertMessage: 'ميزة الكاميرا قادمة قريبا!',
       emptyStateTitle: 'لا توجد محادثات حتى الآن',
@@ -3383,7 +3383,7 @@ export const translations = {
       avatarUploadError: 'فشل تحميل الصورة الرمزية. يرجى المحاولة مرة أخرى.',
       avatarSuccessTitle: 'نجاح',
       avatarSuccessMessage: 'تم تحديث الصورة الرمزية بنجاح!',
-      defaultStatus: 'مرحبا! أنا أستخدم MessageAI',
+      defaultStatus: 'مرحبا! أنا أستخدم Babel',
       profileNameFallback: 'مستخدم غير معروف',
     },
     contacts: {
@@ -3534,7 +3534,7 @@ export const translations = {
       login: {
         loading: 'लोड हो रहा है...',
         title: 'स्वागत है',
-        subtitle: 'अपने MessageAI खाते में लॉगिन करें',
+        subtitle: 'अपने Babel खाते में लॉगिन करें',
         emailPlaceholder: 'अपना ईमेल दर्ज करें',
         passwordPlaceholder: 'अपना पासवर्ड दर्ज करें',
         signingInButton: 'लॉगिन हो रहा है...',
@@ -3556,7 +3556,7 @@ export const translations = {
       },
       signup: {
         title: 'खाता बनाएं',
-        subtitle: 'MessageAI में शामिल हों और चैट करना शुरू करें',
+        subtitle: 'Babel में शामिल हों और चैट करना शुरू करें',
         displayNameLabel: 'प्रदर्शन नाम',
         displayNamePlaceholder: 'अपना प्रदर्शन नाम दर्ज करें',
         emailLabel: 'ईमेल',
@@ -3584,7 +3584,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'बातचीत लोड हो रही है...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'कैमरा',
       cameraAlertMessage: 'कैमरा सुविधा जल्द आ रही है!',
       emptyStateTitle: 'अभी तक कोई बातचीत नहीं',
@@ -3652,7 +3652,7 @@ export const translations = {
       avatarUploadError: 'अवतार अपलोड विफल। कृपया पुनः प्रयास करें।',
       avatarSuccessTitle: 'सफलता',
       avatarSuccessMessage: 'अवतार सफलतापूर्वक अपडेट हुआ!',
-      defaultStatus: 'नमस्ते! मैं MessageAI का उपयोग कर रहा हूं',
+      defaultStatus: 'नमस्ते! मैं Babel का उपयोग कर रहा हूं',
       profileNameFallback: 'अज्ञात उपयोगकर्ता',
     },
     contacts: {
@@ -3803,7 +3803,7 @@ export const translations = {
       login: {
         loading: 'กำลังโหลด...',
         title: 'ยินดีต้อนรับกลับ',
-        subtitle: 'เข้าสู่บัญชี MessageAI ของคุณ',
+        subtitle: 'เข้าสู่บัญชี Babel ของคุณ',
         emailPlaceholder: 'ป้อนอีเมลของคุณ',
         passwordPlaceholder: 'ป้อนรหัสผ่านของคุณ',
         signingInButton: 'กำลังเข้าสู่ระบบ...',
@@ -3825,7 +3825,7 @@ export const translations = {
       },
       signup: {
         title: 'สร้างบัญชี',
-        subtitle: 'เข้าร่วม MessageAI และเริ่มแชท',
+        subtitle: 'เข้าร่วม Babel และเริ่มแชท',
         displayNameLabel: 'ชื่อที่แสดง',
         displayNamePlaceholder: 'ป้อนชื่อที่แสดงของคุณ',
         emailLabel: 'อีเมล',
@@ -3853,7 +3853,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'กำลังโหลดการสนทนา...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'กล้อง',
       cameraAlertMessage: 'คุณลักษณะของกล้องจะเร็วๆ นี้!',
       emptyStateTitle: 'ยังไม่มีการสนทนา',
@@ -3921,7 +3921,7 @@ export const translations = {
       avatarUploadError: 'อัปโหลดอวตารล้มเหลว กรุณาลองใหม่',
       avatarSuccessTitle: 'สำเร็จ',
       avatarSuccessMessage: 'อัปเดตอวตารเรียบร้อยแล้ว!',
-      defaultStatus: 'สวัสดี! ฉันกำลังใช้ MessageAI',
+      defaultStatus: 'สวัสดี! ฉันกำลังใช้ Babel',
       profileNameFallback: 'ผู้ใช้ที่ไม่ทราบ',
     },
     contacts: {
@@ -4072,7 +4072,7 @@ export const translations = {
       login: {
         loading: 'Đang tải...',
         title: 'Chào mừng bạn trở lại',
-        subtitle: 'Đăng nhập vào tài khoản MessageAI của bạn',
+        subtitle: 'Đăng nhập vào tài khoản Babel của bạn',
         emailPlaceholder: 'Nhập email của bạn',
         passwordPlaceholder: 'Nhập mật khẩu của bạn',
         signingInButton: 'Đang đăng nhập...',
@@ -4094,7 +4094,7 @@ export const translations = {
       },
       signup: {
         title: 'Tạo tài khoản',
-        subtitle: 'Tham gia MessageAI và bắt đầu trò chuyện',
+        subtitle: 'Tham gia Babel và bắt đầu trò chuyện',
         displayNameLabel: 'Tên hiển thị',
         displayNamePlaceholder: 'Nhập tên hiển thị của bạn',
         emailLabel: 'Email',
@@ -4122,7 +4122,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Đang tải cuộc hội thoại...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Máy ảnh',
       cameraAlertMessage: 'Tính năng máy ảnh sắp có!',
       emptyStateTitle: 'Chưa có cuộc hội thoại',
@@ -4190,7 +4190,7 @@ export const translations = {
       avatarUploadError: 'Tải lên hình đại diện thất bại. Vui lòng thử lại.',
       avatarSuccessTitle: 'Thành công',
       avatarSuccessMessage: 'Hình đại diện đã được cập nhật thành công!',
-      defaultStatus: 'Xin chào! Tôi đang sử dụng MessageAI',
+      defaultStatus: 'Xin chào! Tôi đang sử dụng Babel',
       profileNameFallback: 'Người dùng không xác định',
     },
     contacts: {
@@ -4341,7 +4341,7 @@ export const translations = {
       login: {
         loading: 'Laden...',
         title: 'Welkom terug',
-        subtitle: 'Log in op uw MessageAI-account',
+        subtitle: 'Log in op uw Babel-account',
         emailPlaceholder: 'Voer uw e-mail in',
         passwordPlaceholder: 'Voer uw wachtwoord in',
         signingInButton: 'Inloggen...',
@@ -4363,7 +4363,7 @@ export const translations = {
       },
       signup: {
         title: 'Account aanmaken',
-        subtitle: 'Sluit je aan bij MessageAI en begin met chatten',
+        subtitle: 'Sluit je aan bij Babel en begin met chatten',
         displayNameLabel: 'Weergavenaam',
         displayNamePlaceholder: 'Voer uw weergavenaam in',
         emailLabel: 'E-mailadres',
@@ -4391,7 +4391,7 @@ export const translations = {
     },
     chats: {
       loadingText: 'Gesprekken laden...',
-      headerTitle: 'MessageAI',
+      headerTitle: 'Babel',
       cameraAlertTitle: 'Camera',
       cameraAlertMessage: 'Camerafunctie komt binnenkort!',
       emptyStateTitle: 'Nog geen gesprekken',
@@ -4459,7 +4459,7 @@ export const translations = {
       avatarUploadError: 'Avatar uploaden mislukt. Probeer het opnieuw.',
       avatarSuccessTitle: 'Succes',
       avatarSuccessMessage: 'Avatar succesvol bijgewerkt!',
-      defaultStatus: 'Hallo! Ik gebruik MessageAI',
+      defaultStatus: 'Hallo! Ik gebruik Babel',
       profileNameFallback: 'Onbekende gebruiker',
     },
     contacts: {

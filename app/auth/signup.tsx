@@ -60,7 +60,7 @@ export default function SignupScreen() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Create Account</Text>
 
-          <Text style={styles.subtitle}>Join MessageAI and start chatting</Text>
+          <Text style={styles.subtitle}>Join Babel and start chatting</Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Display Name</Text>

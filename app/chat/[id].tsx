@@ -1,5 +1,6 @@
 import ImageViewer from '@/components/ImageViewer'
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator'
+import { GroupMembersModal } from '@/components/GroupMembersModal'
 import { useAuth } from '@/contexts/AuthContext'
 import { ImageService } from '@/services/imageService'
 import { MessagingService } from '@/services/messagingService'
@@ -61,6 +62,7 @@ export default function ChatScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imageViewerVisible, setImageViewerVisible] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [groupMembersModalVisible, setGroupMembersModalVisible] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(
@@ -1062,7 +1064,15 @@ export default function ChatScreen() {
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
+          <TouchableOpacity
+            style={styles.headerCenter}
+            onPress={() => {
+              if (conversation?.type === 'group') {
+                setGroupMembersModalVisible(true)
+              }
+            }}
+            activeOpacity={conversation?.type === 'group' ? 0.7 : 1}
+          >
             <Text style={styles.headerTitle}>{getConversationTitle()}</Text>
             {presenceData && (
               <Text style={styles.presenceStatus}>
@@ -1102,7 +1112,7 @@ export default function ChatScreen() {
                 {NetworkService.getStatusText()}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -1245,6 +1255,14 @@ export default function ChatScreen() {
           setImageViewerVisible(false)
           setSelectedImage(null)
         }}
+      />
+
+      {/* Group Members Modal */}
+      <GroupMembersModal
+        visible={groupMembersModalVisible}
+        onClose={() => setGroupMembersModalVisible(false)}
+        members={Array.from(participantProfiles.values())}
+        title={conversation?.title || 'Group Members'}
       />
     </View>
   )

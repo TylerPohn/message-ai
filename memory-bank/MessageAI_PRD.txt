@@ -1,4 +1,4 @@
-PRD — MessageAI (React Native + Firebase)
+PRD — Babel (React Native + Firebase)
 
 1) Goal & Non-Goals
 Goal: Ship a production-quality, cross-platform messaging app (WhatsApp-style) with reliable real-time chat and offline support, then layer in AI features (summaries, translation, smart replies, action items) using LLMs + lightweight RAG—within a one-week sprint.

@@ -1,9 +1,9 @@
 ================================================================================
-                    MESSAGEAI TRANSLATION INVENTORY SUMMARY
+                    BABEL TRANSLATION INVENTORY SUMMARY
 ================================================================================
 
 GENERATED: October 22, 2025
-REPOSITORY: MessageAI (/Users/tyler/Desktop/Gauntlet/MessageAI)
+REPOSITORY: Babel (/Users/tyler/Desktop/Gauntlet/MessageAI)
 SCOPE: All hardcoded user-facing text strings requiring translation
 
 ================================================================================
@@ -134,7 +134,7 @@ CONTEXT-DEPENDENT STRINGS (same text, different contexts):
   - "Loading..." (multiple screens)
 
 BRAND/TECHNICAL TERMS (DO NOT TRANSLATE):
-  - "MessageAI" (application name)
+  - "Babel" (application name)
   - Language codes: "en", "es", "fr", "de", etc.
   - "Firestore" (only in comments)
   - "Firebase" (only in comments)

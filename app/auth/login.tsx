@@ -70,7 +70,7 @@ export default function LoginScreen() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Welcome Back</Text>
 
-          <Text style={styles.subtitle}>Sign in to your MessageAI account</Text>
+          <Text style={styles.subtitle}>Sign in to your Babel account</Text>
 
           <View style={styles.inputContainer}>
             <TextInput

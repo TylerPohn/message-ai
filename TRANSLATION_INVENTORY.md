@@ -1,7 +1,7 @@
-# MessageAI - Hardcoded User-Facing Text Inventory
+# Babel - Hardcoded User-Facing Text Inventory
 
 ## Executive Summary
-This document catalogs all hardcoded user-facing text strings in the MessageAI application that require translation. The inventory includes 126+ unique translatable strings organized by functional area and screen location.
+This document catalogs all hardcoded user-facing text strings in the Babel application that require translation. The inventory includes 126+ unique translatable strings organized by functional area and screen location.
 
 ---
 
@@ -13,7 +13,7 @@ This document catalogs all hardcoded user-facing text strings in the MessageAI a
 |--------|------|---------|-------|
 | "Loading..." | Loading indicator | 26 | Shown while auth state loads |
 | "Welcome Back" | Title | 71 | Main heading |
-| "Sign in to your MessageAI account" | Subtitle | 73 | Login description |
+| "Sign in to your Babel account" | Subtitle | 73 | Login description |
 | "Enter your email" | Placeholder | 78 | Email input field |
 | "Enter your password" | Placeholder | 91 | Password input field |
 | "Signing In..." | Button text (dynamic) | 106 | Shown while processing |
@@ -38,7 +38,7 @@ This document catalogs all hardcoded user-facing text strings in the MessageAI a
 | String | Type | Line(s) | Notes |
 |--------|------|---------|-------|
 | "Create Account" | Title | 61 | Main heading |
-| "Join MessageAI and start chatting" | Subtitle | 63 | Signup description |
+| "Join Babel and start chatting" | Subtitle | 63 | Signup description |
 | "Display Name" | Form label | 66 | User display name field |
 | "Enter your display name" | Placeholder | 69 | Display name input |
 | "Email" | Form label | 78 | Email field |
@@ -79,7 +79,7 @@ This document catalogs all hardcoded user-facing text strings in the MessageAI a
 | String | Type | Line(s) | Notes |
 |--------|------|---------|-------|
 | "Loading conversations..." | Loading text | 538 | Initial load indicator |
-| "MessageAI" | Header title | 547 | App name in header |
+| "Babel" | Header title | 547 | App name in header |
 | "Camera" | Alert title | 570 | Camera feature placeholder |
 | "Camera feature coming soon!" | Alert message | 570 | Coming soon message |
 | "No conversations yet" | Empty state title | 592 | When no chats exist |
@@ -152,7 +152,7 @@ This document catalogs all hardcoded user-facing text strings in the MessageAI a
 | "Failed to upload avatar. Please try again." | Alert message | 188 | Avatar upload error |
 | "Success" | Alert title | 185 | Avatar upload success |
 | "Avatar updated successfully!" | Alert message | 185 | Avatar success message |
-| "Hey there! I am using MessageAI" | Default status | 300 | Default user status text |
+| "Hey there! I am using Babel" | Default status | 300 | Default user status text |
 | "Unknown User" | Profile name fallback | 297 | When user name unavailable |
 
 ---
