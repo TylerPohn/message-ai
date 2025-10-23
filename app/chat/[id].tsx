@@ -71,6 +71,8 @@ export default function ChatScreen() {
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
   const textInputRef = useRef<TextInput>(null)
+  const shouldAutoScrollRef = useRef(true)
+  const isUserScrollingRef = useRef(false)
 
   // Handle logout redirect
   useEffect(() => {
@@ -324,7 +326,7 @@ export default function ChatScreen() {
       // Clear translation tracking set
       translatingSet.clear()
     }
-  }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation, typingTimeout])
+  }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
@@ -1075,10 +1077,23 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           onEndReached={loadMoreMessages}
           onEndReachedThreshold={0.5}
-          onContentSizeChange={() =>
-            flashListRef.current?.scrollToEnd({ animated: true })
-          }
-          onLayout={() => flashListRef.current?.scrollToEnd({ animated: true })}
+          onScroll={(event) => {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
+            const isAtBottom = contentOffset.y >= contentSize.height - layoutMeasurement.height - 50
+
+            // User is scrolling if they're not near the bottom
+            isUserScrollingRef.current = !isAtBottom
+            shouldAutoScrollRef.current = isAtBottom
+          }}
+          scrollEventThrottle={16}
+          onContentSizeChange={() => {
+            // Only auto-scroll if user isn't scrolling and we should auto-scroll
+            if (shouldAutoScrollRef.current && !isUserScrollingRef.current) {
+              setTimeout(() => {
+                flashListRef.current?.scrollToEnd({ animated: false })
+              }, 0)
+            }
+          }}
           ListHeaderComponent={
             loadingMore ? (
               <View style={styles.loadingMoreContainer}>
