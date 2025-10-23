@@ -927,7 +927,7 @@ export default function ChatScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.translationMetadataBadgeText}>
-                    🔍 See details
+                    🔍 {t(locale, 'translationDetails.seeDetailsLabel')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1312,6 +1312,7 @@ export default function ChatScreen() {
           setTranslationMetadataModalVisible(false)
           setSelectedTranslationMetadata(null)
         }}
+        userLocale={locale}
       />
     </View>
   )

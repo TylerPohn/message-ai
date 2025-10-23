@@ -16,6 +16,7 @@ import {
   View
 } from 'react-native'
 import { t, Locale, isSupportedLocale } from '@/locales/translations'
+import { LanguageStorageService } from '@/services/languageStorageService'
 
 interface LanguageOption {
   code: LanguageCode
@@ -87,6 +88,9 @@ export default function LanguageSettingsScreen() {
         preferredLanguage: selectedLanguage,
         autoTranslate: autoTranslate
       })
+
+      // Persist language preference to AsyncStorage for login/signup screens
+      await LanguageStorageService.saveLanguage(selectedLanguage as Locale)
 
       Alert.alert(t(locale, 'common.ok'), t(locale, 'languageSettings.successMessage'))
       router.back()

@@ -15,14 +15,16 @@ import type {
   IdiomExplanation
 } from '@/types/messaging'
 import { SUPPORTED_LANGUAGES } from '@/types/messaging'
+import { t, Locale } from '@/locales/translations'
 
 interface Props {
   visible: boolean
   translation: Translation | null
   onClose: () => void
+  userLocale?: Locale
 }
 
-export function TranslationMetadataModal({ visible, translation, onClose }: Props) {
+export function TranslationMetadataModal({ visible, translation, onClose, userLocale = 'en' }: Props) {
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
@@ -61,7 +63,7 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
           activeOpacity={0.7}
         >
           <Text style={styles.sectionTitle}>
-            🎭 Idioms & Expressions ({translation.idioms.length})
+            🎭 {t(userLocale, 'translationDetails.idiomsExpressionsTitle')} ({translation.idioms.length})
           </Text>
           <Ionicons
             name={expandedSections.idioms ? 'chevron-up' : 'chevron-down'}
@@ -76,13 +78,13 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
               <View key={index} style={styles.idiomItem}>
                 <Text style={styles.idiomPhrase}>"{idiom.phrase}"</Text>
                 <Text style={styles.idiomType}>
-                  {idiom.type === 'idiom' ? 'Idiom' : 'Slang'}
+                  {idiom.type === 'idiom' ? t(userLocale, 'translationDetails.idiomLabel') : t(userLocale, 'translationDetails.slangLabel')}
                 </Text>
-                <Text style={styles.idiomLabel}>Means:</Text>
+                <Text style={styles.idiomLabel}>{t(userLocale, 'translationDetails.meansLabel')}</Text>
                 <Text style={styles.idiomText}>{idiom.meaning}</Text>
                 {idiom.example && (
                   <>
-                    <Text style={styles.idiomLabel}>Example:</Text>
+                    <Text style={styles.idiomLabel}>{t(userLocale, 'translationDetails.exampleLabel')}</Text>
                     <Text style={styles.idiomExample}>{idiom.example}</Text>
                   </>
                 )}
@@ -161,13 +163,13 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
     const getLabel = (level: string) => {
       switch (level) {
         case 'casual':
-          return 'Casual'
+          return t(userLocale, 'translationDetails.casualLabel')
         case 'neutral':
-          return 'Neutral'
+          return t(userLocale, 'translationDetails.neutralLabel')
         case 'formal':
-          return 'Formal'
+          return t(userLocale, 'translationDetails.formalLabel')
         default:
-          return 'Neutral'
+          return t(userLocale, 'translationDetails.neutralLabel')
       }
     }
 
@@ -179,7 +181,7 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
           activeOpacity={0.7}
         >
           <Text style={styles.sectionTitle}>
-            {getEmoji(translation.formality.detected)} Formality Level
+            {getEmoji(translation.formality.detected)} {t(userLocale, 'translationDetails.formalityLevelTitle')}
           </Text>
           <Ionicons
             name={expandedSections.formality ? 'chevron-up' : 'chevron-down'}
@@ -191,13 +193,13 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
         {expandedSections.formality && (
           <View style={styles.sectionContent}>
             <View style={styles.formalityCurrentBox}>
-              <Text style={styles.formalityCurrentLabel}>Detected:</Text>
+              <Text style={styles.formalityCurrentLabel}>{t(userLocale, 'translationDetails.detectedLabel')}</Text>
               <Text style={styles.formalityCurrentValue}>
                 {getLabel(translation.formality.detected)}
               </Text>
             </View>
 
-            <Text style={styles.alternativesLabel}>Alternative Versions:</Text>
+            <Text style={styles.alternativesLabel}>{t(userLocale, 'translationDetails.alternativeVersionsLabel')}</Text>
             {(['casual', 'neutral', 'formal'] as const).map((level) => (
               <View
                 key={level}
@@ -213,7 +215,7 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
                     {getLabel(level)}
                   </Text>
                   {level === translation.formality!.detected && (
-                    <Text style={styles.detectedBadge}>Detected</Text>
+                    <Text style={styles.detectedBadge}>{t(userLocale, 'translationDetails.detectedBadgeLabel')}</Text>
                   )}
                 </View>
                 <Text style={styles.alternativeText}>
@@ -239,7 +241,7 @@ export function TranslationMetadataModal({ visible, translation, onClose }: Prop
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitle}>
-              <Text style={styles.translatedFromLabel}>Translated from</Text>
+              <Text style={styles.translatedFromLabel}>{t(userLocale, 'chat.translationInfo', { lang: '' }).replace(/\s*$/, '')}</Text>
               <Text style={styles.translatedFromLang}>{sourceLanguageName}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>

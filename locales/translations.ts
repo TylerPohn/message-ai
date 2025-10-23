@@ -294,6 +294,23 @@ interface TranslationKeys {
     required: string;
     optional: string;
   };
+
+  // Translation Details
+  translationDetails: {
+    idiomsExpressionsTitle: string; // "Idioms & Expressions"
+    meansLabel: string; // "Means:"
+    exampleLabel: string; // "Example:"
+    formalityLevelTitle: string; // "Formality Level"
+    detectedLabel: string; // "Detected:"
+    alternativeVersionsLabel: string; // "Alternative Versions:"
+    idiomLabel: string; // "Idiom"
+    slangLabel: string; // "Slang"
+    detectedBadgeLabel: string; // "Detected"
+    seeDetailsLabel: string; // "See details"
+    casualLabel: string; // "Casual"
+    neutralLabel: string; // "Neutral"
+    formalLabel: string; // "Formal"
+  };
 }
 
 /**
@@ -569,6 +586,21 @@ export const translations = {
       required: 'Required',
       optional: 'Optional',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Idioms & Expressions',
+      meansLabel: 'Means:',
+      exampleLabel: 'Example:',
+      formalityLevelTitle: 'Formality Level',
+      detectedLabel: 'Detected:',
+      alternativeVersionsLabel: 'Alternative Versions:',
+      idiomLabel: 'Idiom',
+      slangLabel: 'Slang',
+      detectedBadgeLabel: 'Detected',
+      seeDetailsLabel: 'See details',
+      casualLabel: 'Casual',
+      neutralLabel: 'Neutral',
+      formalLabel: 'Formal',
+    },
   },
   es: {
     auth: {
@@ -837,6 +869,21 @@ export const translations = {
       no: 'No',
       required: 'Requerido',
       optional: 'Opcional',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Modismos y Expresiones',
+      meansLabel: 'Significa:',
+      exampleLabel: 'Ejemplo:',
+      formalityLevelTitle: 'Nivel de Formalidad',
+      detectedLabel: 'Detectado:',
+      alternativeVersionsLabel: 'Versiones Alternativas:',
+      idiomLabel: 'Modismo',
+      slangLabel: 'Jerga',
+      detectedBadgeLabel: 'Detectado',
+      seeDetailsLabel: 'Ver detalles',
+      casualLabel: 'Informal',
+      neutralLabel: 'Neutro',
+      formalLabel: 'Formal',
     },
   },
   fr: {
@@ -1107,6 +1154,21 @@ export const translations = {
       required: 'Requis',
       optional: 'Optionnel',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Idiomes et Expressions',
+      meansLabel: 'Signifie:',
+      exampleLabel: 'Exemple:',
+      formalityLevelTitle: 'Niveau de Formalité',
+      detectedLabel: 'Détecté:',
+      alternativeVersionsLabel: 'Versions Alternatives:',
+      idiomLabel: 'Idiome',
+      slangLabel: 'Argot',
+      detectedBadgeLabel: 'Détecté',
+      seeDetailsLabel: 'Voir les détails',
+      casualLabel: 'Décontracté',
+      neutralLabel: 'Neutre',
+      formalLabel: 'Formel',
+    },
   },
   de: {
     auth: {
@@ -1375,6 +1437,21 @@ export const translations = {
       no: 'Nein',
       required: 'Erforderlich',
       optional: 'Optional',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Redewendungen & Ausdrücke',
+      meansLabel: 'Bedeutet:',
+      exampleLabel: 'Beispiel:',
+      formalityLevelTitle: 'Formalitätsstufe',
+      detectedLabel: 'Erkannt:',
+      alternativeVersionsLabel: 'Alternative Versionen:',
+      idiomLabel: 'Redewendung',
+      slangLabel: 'Umgangssprache',
+      detectedBadgeLabel: 'Erkannt',
+      seeDetailsLabel: 'Details anzeigen',
+      casualLabel: 'Locker',
+      neutralLabel: 'Neutral',
+      formalLabel: 'Formell',
     },
   },
   it: {
@@ -1645,6 +1722,21 @@ export const translations = {
       required: 'Obbligatorio',
       optional: 'Facoltativo',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Modi di Dire ed Espressioni',
+      meansLabel: 'Significa:',
+      exampleLabel: 'Esempio:',
+      formalityLevelTitle: 'Livello di Formalità',
+      detectedLabel: 'Rilevato:',
+      alternativeVersionsLabel: 'Versioni Alternative:',
+      idiomLabel: 'Modo di dire',
+      slangLabel: 'Gergo',
+      detectedBadgeLabel: 'Rilevato',
+      seeDetailsLabel: 'Vedi dettagli',
+      casualLabel: 'Informale',
+      neutralLabel: 'Neutro',
+      formalLabel: 'Formale',
+    },
   },
   pt: {
     auth: {
@@ -1913,6 +2005,21 @@ export const translations = {
       no: 'Não',
       required: 'Obrigatório',
       optional: 'Opcional',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Expressões Idiomáticas',
+      meansLabel: 'Significa:',
+      exampleLabel: 'Exemplo:',
+      formalityLevelTitle: 'Nível de Formalidade',
+      detectedLabel: 'Detectado:',
+      alternativeVersionsLabel: 'Versões Alternativas:',
+      idiomLabel: 'Expressão idiomática',
+      slangLabel: 'Gíria',
+      detectedBadgeLabel: 'Detectado',
+      seeDetailsLabel: 'Ver detalhes',
+      casualLabel: 'Informal',
+      neutralLabel: 'Neutro',
+      formalLabel: 'Formal',
     },
   },
   ru: {
@@ -2183,6 +2290,21 @@ export const translations = {
       required: 'Обязательно',
       optional: 'Опционально',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Идиомы и Выражения',
+      meansLabel: 'Означает:',
+      exampleLabel: 'Пример:',
+      formalityLevelTitle: 'Уровень Формальности',
+      detectedLabel: 'Обнаружено:',
+      alternativeVersionsLabel: 'Альтернативные Версии:',
+      idiomLabel: 'Идиома',
+      slangLabel: 'Сленг',
+      detectedBadgeLabel: 'Обнаружено',
+      seeDetailsLabel: 'Подробнее',
+      casualLabel: 'Неформальный',
+      neutralLabel: 'Нейтральный',
+      formalLabel: 'Формальный',
+    },
   },
   uk: {
     auth: {
@@ -2451,6 +2573,21 @@ export const translations = {
       no: 'Ні',
       required: 'Обов\'язково',
       optional: 'Опціонально',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Ідіоми та Вирази',
+      meansLabel: 'Означає:',
+      exampleLabel: 'Приклад:',
+      formalityLevelTitle: 'Рівень Формальності',
+      detectedLabel: 'Виявлено:',
+      alternativeVersionsLabel: 'Альтернативні Версії:',
+      idiomLabel: 'Ідіома',
+      slangLabel: 'Сленг',
+      detectedBadgeLabel: 'Виявлено',
+      seeDetailsLabel: 'Деталі',
+      casualLabel: 'Неформальний',
+      neutralLabel: 'Нейтральний',
+      formalLabel: 'Формальний',
     },
   },
   ja: {
@@ -2721,6 +2858,21 @@ export const translations = {
       required: '必須',
       optional: 'オプション',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: '慣用句と表現',
+      meansLabel: '意味：',
+      exampleLabel: '例：',
+      formalityLevelTitle: '丁寧度レベル',
+      detectedLabel: '検出：',
+      alternativeVersionsLabel: '代替バージョン：',
+      idiomLabel: '慣用句',
+      slangLabel: 'スラング',
+      detectedBadgeLabel: '検出',
+      seeDetailsLabel: '詳細を見る',
+      casualLabel: 'カジュアル',
+      neutralLabel: '普通',
+      formalLabel: '丁寧',
+    },
   },
   ko: {
     auth: {
@@ -2989,6 +3141,21 @@ export const translations = {
       no: '아니오',
       required: '필수',
       optional: '선택사항',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: '관용구 및 표현',
+      meansLabel: '의미:',
+      exampleLabel: '예:',
+      formalityLevelTitle: '형식 수준',
+      detectedLabel: '감지됨:',
+      alternativeVersionsLabel: '대체 버전:',
+      idiomLabel: '관용구',
+      slangLabel: '속어',
+      detectedBadgeLabel: '감지됨',
+      seeDetailsLabel: '세부 정보 보기',
+      casualLabel: '캐주얼',
+      neutralLabel: '보통',
+      formalLabel: '격식',
     },
   },
   zh: {
@@ -3259,6 +3426,21 @@ export const translations = {
       required: '必需',
       optional: '可选',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: '成语和表达',
+      meansLabel: '意思：',
+      exampleLabel: '例子：',
+      formalityLevelTitle: '正式程度',
+      detectedLabel: '检测到：',
+      alternativeVersionsLabel: '替代版本：',
+      idiomLabel: '成语',
+      slangLabel: '俚语',
+      detectedBadgeLabel: '检测到',
+      seeDetailsLabel: '查看详情',
+      casualLabel: '随意',
+      neutralLabel: '中性',
+      formalLabel: '正式',
+    },
   },
   ar: {
     auth: {
@@ -3527,6 +3709,21 @@ export const translations = {
       no: 'لا',
       required: 'مطلوب',
       optional: 'اختياري',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'التعابير الاصطلاحية',
+      meansLabel: 'يعني:',
+      exampleLabel: 'مثال:',
+      formalityLevelTitle: 'مستوى الرسمية',
+      detectedLabel: 'تم الكشف:',
+      alternativeVersionsLabel: 'النسخ البديلة:',
+      idiomLabel: 'تعبير اصطلاحي',
+      slangLabel: 'عامية',
+      detectedBadgeLabel: 'تم الكشف',
+      seeDetailsLabel: 'عرض التفاصيل',
+      casualLabel: 'غير رسمي',
+      neutralLabel: 'محايد',
+      formalLabel: 'رسمي',
     },
   },
   hi: {
@@ -3797,6 +3994,21 @@ export const translations = {
       required: 'आवश्यक',
       optional: 'वैकल्पिक',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'मुहावरे और अभिव्यक्तियाँ',
+      meansLabel: 'अर्थ:',
+      exampleLabel: 'उदाहरण:',
+      formalityLevelTitle: 'औपचारिकता स्तर',
+      detectedLabel: 'पहचाना गया:',
+      alternativeVersionsLabel: 'वैकल्पिक संस्करण:',
+      idiomLabel: 'मुहावरा',
+      slangLabel: 'बोलचाल',
+      detectedBadgeLabel: 'पहचाना गया',
+      seeDetailsLabel: 'विवरण देखें',
+      casualLabel: 'अनौपचारिक',
+      neutralLabel: 'तटस्थ',
+      formalLabel: 'औपचारिक',
+    },
   },
   th: {
     auth: {
@@ -4065,6 +4277,21 @@ export const translations = {
       no: 'ไม่',
       required: 'จำเป็น',
       optional: 'ตัวเลือก',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'สำนวนและการแสดงออก',
+      meansLabel: 'หมายถึง:',
+      exampleLabel: 'ตัวอย่าง:',
+      formalityLevelTitle: 'ระดับความเป็นทางการ',
+      detectedLabel: 'ตรวจพบ:',
+      alternativeVersionsLabel: 'เวอร์ชันทางเลือก:',
+      idiomLabel: 'สำนวน',
+      slangLabel: 'สแลง',
+      detectedBadgeLabel: 'ตรวจพบ',
+      seeDetailsLabel: 'ดูรายละเอียด',
+      casualLabel: 'ไม่เป็นทางการ',
+      neutralLabel: 'กลางๆ',
+      formalLabel: 'เป็นทางการ',
     },
   },
   vi: {
@@ -4335,6 +4562,21 @@ export const translations = {
       required: 'Bắt buộc',
       optional: 'Tùy chọn',
     },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Thành ngữ và Cách diễn đạt',
+      meansLabel: 'Nghĩa:',
+      exampleLabel: 'Ví dụ:',
+      formalityLevelTitle: 'Mức độ Trang trọng',
+      detectedLabel: 'Đã phát hiện:',
+      alternativeVersionsLabel: 'Phiên bản Thay thế:',
+      idiomLabel: 'Thành ngữ',
+      slangLabel: 'Tiếng lóng',
+      detectedBadgeLabel: 'Đã phát hiện',
+      seeDetailsLabel: 'Xem chi tiết',
+      casualLabel: 'Thân mật',
+      neutralLabel: 'Trung lập',
+      formalLabel: 'Trang trọng',
+    },
   },
   nl: {
     auth: {
@@ -4603,6 +4845,21 @@ export const translations = {
       no: 'Nee',
       required: 'Verplicht',
       optional: 'Optioneel',
+    },
+    translationDetails: {
+      idiomsExpressionsTitle: 'Uitdrukkingen & Zegswijzen',
+      meansLabel: 'Betekent:',
+      exampleLabel: 'Voorbeeld:',
+      formalityLevelTitle: 'Formaliteitsniveau',
+      detectedLabel: 'Gedetecteerd:',
+      alternativeVersionsLabel: 'Alternatieve Versies:',
+      idiomLabel: 'Uitdrukking',
+      slangLabel: 'Straattaal',
+      detectedBadgeLabel: 'Gedetecteerd',
+      seeDetailsLabel: 'Bekijk details',
+      casualLabel: 'Informeel',
+      neutralLabel: 'Neutraal',
+      formalLabel: 'Formeel',
     },
   },
 } as Record<Locale, Partial<TranslationKeys>>;

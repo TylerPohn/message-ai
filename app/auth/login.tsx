@@ -2,7 +2,7 @@ import { WhatsAppColors } from '@/constants/theme'
 import { useAuth } from '@/contexts/AuthContext'
 import Constants from 'expo-constants'
 import { Link, router } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,19 +14,41 @@ import {
   TouchableOpacity,
   View
 } from 'react-native'
+import { t, Locale } from '@/locales/translations'
+import { LanguageStorageService } from '@/services/languageStorageService'
+import { LanguageSelector } from '@/components/LanguageSelector'
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [locale, setLocale] = useState<Locale>('en')
   const { signIn } = useAuth()
+
+  // Load saved language preference on mount
+  useEffect(() => {
+    const loadLanguage = async () => {
+      const savedLocale = await LanguageStorageService.getLanguage()
+      setLocale(savedLocale)
+    }
+    loadLanguage()
+  }, [])
+
+  // Save language preference when changed
+  const handleLanguageChange = async (newLocale: Locale) => {
+    setLocale(newLocale)
+    await LanguageStorageService.saveLanguage(newLocale)
+  }
 
   // Check if development mode is enabled
   const isDevMode = Constants.expoConfig?.extra?.EXPO_ENVIRONMENT === 'dev'
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields')
+      Alert.alert(
+        t(locale, 'auth.login.errorTitle'),
+        t(locale, 'auth.login.emptyFieldsError')
+      )
       return
     }
 
@@ -36,8 +58,8 @@ export default function LoginScreen() {
       router.replace('/(tabs)')
     } catch (error: any) {
       Alert.alert(
-        'Login Failed',
-        error.message || 'An error occurred during login'
+        t(locale, 'auth.login.loginFailedTitle'),
+        error.message || t(locale, 'auth.login.loginFailedMessage')
       )
     } finally {
       setLoading(false)
@@ -53,8 +75,8 @@ export default function LoginScreen() {
       router.replace('/(tabs)')
     } catch (error: any) {
       Alert.alert(
-        'Dev Login Failed',
-        error.message || 'An error occurred during dev login'
+        t(locale, 'auth.login.devLoginFailedTitle'),
+        error.message || t(locale, 'auth.login.devLoginFailedMessage')
       )
     } finally {
       setLoading(false)
@@ -68,14 +90,23 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Welcome Back</Text>
+          {/* Language Selector */}
+          <View style={styles.languageSelectorContainer}>
+            <LanguageSelector
+              currentLocale={locale}
+              onSelectLocale={handleLanguageChange}
+              lightMode={false}
+            />
+          </View>
 
-          <Text style={styles.subtitle}>Sign in to your Babel account</Text>
+          <Text style={styles.title}>{t(locale, 'auth.login.title')}</Text>
+
+          <Text style={styles.subtitle}>{t(locale, 'auth.login.subtitle')}</Text>
 
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder='Enter your email'
+              placeholder={t(locale, 'auth.login.emailPlaceholder')}
               placeholderTextColor={WhatsAppColors.lightText}
               value={email}
               onChangeText={setEmail}
@@ -88,7 +119,7 @@ export default function LoginScreen() {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder='Enter your password'
+              placeholder={t(locale, 'auth.login.passwordPlaceholder')}
               placeholderTextColor={WhatsAppColors.lightText}
               value={password}
               onChangeText={setPassword}
@@ -103,15 +134,15 @@ export default function LoginScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? t(locale, 'auth.login.signingInButton') : t(locale, 'auth.login.signInButton')}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Don&apos;t have an account? </Text>
+            <Text style={styles.linkText}>{t(locale, 'auth.login.signUpPrompt')} </Text>
             <Link href='/auth/signup' asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>Sign Up</Text>
+                <Text style={styles.link}>{t(locale, 'auth.login.signUpLink')}</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -119,8 +150,8 @@ export default function LoginScreen() {
           {/* Development Mode Login Buttons */}
           {isDevMode && (
             <View style={styles.devContainer}>
-              <Text style={styles.devTitle}>Development Mode</Text>
-              <Text style={styles.devSubtitle}>Quick login for testing</Text>
+              <Text style={styles.devTitle}>{t(locale, 'auth.login.devModeTitle')}</Text>
+              <Text style={styles.devSubtitle}>{t(locale, 'auth.login.devModeSubtitle')}</Text>
 
               <TouchableOpacity
                 style={[
@@ -132,7 +163,7 @@ export default function LoginScreen() {
                 disabled={loading}
               >
                 <Text style={styles.devButtonText}>
-                  {loading ? 'Signing In...' : 'Login as Tyler'}
+                  {loading ? t(locale, 'auth.login.devSigningInButton') : t(locale, 'auth.login.devLoginTyler')}
                 </Text>
               </TouchableOpacity>
 
@@ -148,7 +179,7 @@ export default function LoginScreen() {
                 disabled={loading}
               >
                 <Text style={styles.devButtonText}>
-                  {loading ? 'Signing In...' : 'Login as Moblin'}
+                  {loading ? t(locale, 'auth.login.devSigningInButton') : t(locale, 'auth.login.devLoginMoblin')}
                 </Text>
               </TouchableOpacity>
 
@@ -162,7 +193,7 @@ export default function LoginScreen() {
                 disabled={loading}
               >
                 <Text style={styles.devButtonText}>
-                  {loading ? 'Signing In...' : 'Login as Daihorusu'}
+                  {loading ? t(locale, 'auth.login.devSigningInButton') : t(locale, 'auth.login.devLoginDaihorusu')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -187,6 +218,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center'
+  },
+  languageSelectorContainer: {
+    marginBottom: 24,
+    alignItems: 'flex-end'
   },
   title: {
     fontSize: 28,

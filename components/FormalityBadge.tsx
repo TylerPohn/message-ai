@@ -9,12 +9,14 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Formality } from '@/types/messaging'
+import { t, Locale } from '@/locales/translations'
 
 interface Props {
   formality: Formality | undefined
+  userLocale?: Locale
 }
 
-export function FormalityBadge({ formality }: Props) {
+export function FormalityBadge({ formality, userLocale = 'en' }: Props) {
   const [showOptions, setShowOptions] = useState(false)
 
   if (!formality) {
@@ -37,13 +39,13 @@ export function FormalityBadge({ formality }: Props) {
   const getLabel = (level: string) => {
     switch (level) {
       case 'casual':
-        return 'Casual'
+        return t(userLocale, 'translationDetails.casualLabel')
       case 'neutral':
-        return 'Neutral'
+        return t(userLocale, 'translationDetails.neutralLabel')
       case 'formal':
-        return 'Formal'
+        return t(userLocale, 'translationDetails.formalLabel')
       default:
-        return 'Neutral'
+        return t(userLocale, 'translationDetails.neutralLabel')
     }
   }
 
@@ -86,7 +88,7 @@ export function FormalityBadge({ formality }: Props) {
           <View style={styles.modal}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.modalTitle}>Formality Level</Text>
+              <Text style={styles.modalTitle}>{t(userLocale, 'translationDetails.formalityLevelTitle')}</Text>
               <TouchableOpacity onPress={() => setShowOptions(false)}>
                 <Ionicons name='close' size={24} color='#000' />
               </TouchableOpacity>
@@ -119,7 +121,7 @@ export function FormalityBadge({ formality }: Props) {
                       {getLabel(level)}
                     </Text>
                     {level === formality.detected && (
-                      <Text style={styles.badge_selected}>Detected</Text>
+                      <Text style={styles.badge_selected}>{t(userLocale, 'translationDetails.detectedBadgeLabel')}</Text>
                     )}
                   </View>
                   <Text style={styles.alternativeText}>
