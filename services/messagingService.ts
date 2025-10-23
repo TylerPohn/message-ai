@@ -6,7 +6,8 @@ import {
   Message,
   MessageStatus,
   MessageType,
-  UserProfile
+  UserProfile,
+  ReadReceipt
 } from '@/types/messaging'
 import {
   addDoc,
@@ -570,6 +571,110 @@ export class MessagingService {
       })) as UserProfile[]
     } catch (error) {
       console.error('Error fetching conversation participants:', error)
+      throw error
+    }
+  }
+
+  // Add a read receipt for a specific message by a specific user
+  static async addReadReceipt(
+    messageId: string,
+    userId: string,
+    userName: string,
+    userPhotoURL?: string
+  ): Promise<void> {
+    try {
+      const readReceiptData = {
+        messageId,
+        userId,
+        readAt: serverTimestamp(),
+        senderName: userName,
+        senderPhotoURL: userPhotoURL
+      }
+
+      // Add or update read receipt document
+      // Using a deterministic document ID to prevent duplicates
+      const readReceiptRef = doc(
+        db,
+        COLLECTIONS.READ_RECEIPTS,
+        `${messageId}_${userId}`
+      )
+
+      await updateDoc(readReceiptRef, readReceiptData).catch(async (error) => {
+        // If document doesn't exist, create it
+        if (error.code === 'not-found') {
+          await addDoc(collection(db, COLLECTIONS.READ_RECEIPTS), readReceiptData)
+        } else {
+          throw error
+        }
+      })
+
+      console.log(`Added read receipt for message ${messageId} by user ${userId}`)
+    } catch (error) {
+      console.error('Error adding read receipt:', error)
+      throw error
+    }
+  }
+
+  // Get all read receipts for a specific message
+  static async getMessageReadReceipts(messageId: string): Promise<ReadReceipt[]> {
+    try {
+      const readReceiptsQuery = query(
+        collection(db, COLLECTIONS.READ_RECEIPTS),
+        where('messageId', '==', messageId)
+      )
+
+      const readReceiptsSnapshot = await getDocs(readReceiptsQuery)
+      return readReceiptsSnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        readAt: doc.data().readAt?.toDate() || new Date()
+      })) as ReadReceipt[]
+    } catch (error) {
+      console.error('Error fetching read receipts for message:', error)
+      return []
+    }
+  }
+
+  // Get read receipt status for a specific message
+  static listenToMessageReadReceipts(
+    messageId: string,
+    callback: (readReceipts: ReadReceipt[]) => void
+  ) {
+    const readReceiptsQuery = query(
+      collection(db, COLLECTIONS.READ_RECEIPTS),
+      where('messageId', '==', messageId)
+    )
+
+    return onSnapshot(readReceiptsQuery, (readReceiptsSnapshot) => {
+      const readReceipts = readReceiptsSnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        readAt: doc.data().readAt?.toDate() || new Date()
+      })) as ReadReceipt[]
+
+      callback(readReceipts)
+    })
+  }
+
+  // Mark message as read by user and update membership
+  static async markMessageAsReadByUser(
+    messageId: string,
+    conversationId: string,
+    userId: string,
+    userName: string,
+    userPhotoURL?: string
+  ): Promise<void> {
+    try {
+      // Update message status
+      await this.updateMessageStatus(messageId, 'read')
+
+      // Add read receipt
+      await this.addReadReceipt(messageId, userId, userName, userPhotoURL)
+
+      // Update membership's last read message
+      await this.markMessagesAsRead(conversationId, userId, messageId)
+
+      console.log(`Message ${messageId} marked as read by ${userId}`)
+    } catch (error) {
+      console.error('Error marking message as read by user:', error)
       throw error
     }
   }

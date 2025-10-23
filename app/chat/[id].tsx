@@ -1,4 +1,5 @@
 import ImageViewer from '@/components/ImageViewer'
+import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator'
 import { useAuth } from '@/contexts/AuthContext'
 import { ImageService } from '@/services/imageService'
 import { MessagingService } from '@/services/messagingService'
@@ -43,6 +44,9 @@ export default function ChatScreen() {
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messageText, setMessageText] = useState('')
   const [loading, setLoading] = useState(true)
+  const [messageReadReceipts, setMessageReadReceipts] = useState<
+    Map<string, any[]>
+  >(new Map())
   const [sending, setSending] = useState(false)
   const [networkState, setNetworkState] = useState<NetworkState>(
     NetworkService.getCurrentState()
@@ -448,9 +452,15 @@ export default function ChatScreen() {
             (msg) => msg.senderId !== user.uid && msg.status !== 'read'
           )
 
-          // Update each unread message status to "read" (batch for performance)
+          // Update each unread message with read receipt (for group chats)
           const updatePromises = unreadMessages.map((message) =>
-            MessagingService.updateMessageStatus(message.id, 'read')
+            MessagingService.markMessageAsReadByUser(
+              message.id,
+              id,
+              user.uid,
+              userProfile?.displayName || user.displayName || 'Unknown User',
+              userProfile?.photoURL
+            )
           )
 
           await Promise.all(updatePromises)
@@ -463,7 +473,38 @@ export default function ChatScreen() {
     // Debounce the read status update to avoid excessive calls
     const timeoutId = setTimeout(markMessagesAsRead, 500)
     return () => clearTimeout(timeoutId)
-  }, [user, id, messages])
+  }, [user, id, messages, userProfile?.displayName, userProfile?.photoURL])
+
+  // Listen to read receipts for all messages sent by current user
+  useEffect(() => {
+    if (!user || !id || messages.length === 0 || conversation?.type !== 'group') return
+
+    // Get all messages sent by current user
+    const myMessages = messages.filter((msg) => msg.senderId === user.uid)
+
+    if (myMessages.length === 0) return
+
+    // Set up listeners for read receipts on all my messages
+    const unsubscribers: Array<() => void> = []
+
+    myMessages.forEach((message) => {
+      const unsubscriber = MessagingService.listenToMessageReadReceipts(
+        message.id,
+        (readReceipts) => {
+          setMessageReadReceipts((prev) => {
+            const updated = new Map(prev)
+            updated.set(message.id, readReceipts)
+            return updated
+          })
+        }
+      )
+      unsubscribers.push(unsubscriber)
+    })
+
+    return () => {
+      unsubscribers.forEach((unsub) => unsub())
+    }
+  }, [user, id, messages, conversation?.type])
 
   // Handle image picker
   const handleImagePicker = () => {
@@ -862,20 +903,18 @@ export default function ChatScreen() {
               {messageTime}
             </Text>
             {isOwnMessage && isMostRecentUserMessage && (
-              <Text
-                style={[
-                  styles.statusIcon,
-                  { color: getStatusColor(item.status, isQueued) }
-                ]}
-              >
-                {getStatusIcon(item.status, isQueued)}
-              </Text>
+              <ReadReceiptIndicator
+                readBy={messageReadReceipts.get(item.id) || []}
+                isGroupChat={conversation?.type === 'group'}
+                status={item.status}
+              />
             )}
           </View>
-          {/* Show "Seen" indicator for read messages */}
+          {/* Show "Seen" indicator for direct chats only */}
           {isOwnMessage &&
             isMostRecentUserMessage &&
             item.status === 'read' &&
+            conversation?.type === 'direct' &&
             otherUserMembership &&
             otherUserMembership.lastReadMessageId === item.id && (
               <Text style={styles.seenIndicator}>{t(locale, 'chat.seenStatus')}</Text>

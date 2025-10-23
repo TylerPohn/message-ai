@@ -19,6 +19,14 @@ export interface Conversation {
   updatedAt: Date
 }
 
+export interface ReadReceipt {
+  messageId: string
+  userId: string
+  readAt: Date
+  senderName: string
+  senderPhotoURL?: string
+}
+
 export interface Message {
   id: string
   conversationId: string
@@ -40,6 +48,7 @@ export interface Message {
   detectedLanguage?: string
   translatedTo?: string
   isTranslating?: boolean
+  readBy?: ReadReceipt[] // Array of users who've read this message (for group chats)
 }
 
 export interface Membership {
@@ -83,7 +92,8 @@ export const COLLECTIONS = {
   MESSAGES: 'messages',
   MEMBERSHIPS: 'memberships',
   USERS: 'users',
-  CONTACTS: 'contacts'
+  CONTACTS: 'contacts',
+  READ_RECEIPTS: 'readReceipts'
 } as const
 
 // Message status types
