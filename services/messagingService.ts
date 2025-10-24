@@ -27,6 +27,7 @@ import {
 } from 'firebase/firestore'
 import { NetworkService } from './networkService'
 import { OfflineQueueService } from './offlineQueueService'
+import { RAGService } from './ragService'
 // Removed ulid import - using custom ID generation
 
 export class MessagingService {
@@ -160,6 +161,11 @@ export class MessagingService {
       // Update message status to sent
       await updateDoc(messageRef, { status: 'sent' })
 
+      // Store in RAG system (async, non-blocking)
+      this.storeMessageInRAG(messageRef.id, conversationId, senderId, senderName, text, type).catch(err => {
+        console.error('Failed to store message in RAG (non-blocking):', err)
+      })
+
       return messageRef.id
     } catch (error) {
       console.error('Error sending message:', error)
@@ -182,6 +188,57 @@ export class MessagingService {
         return queuedId
       }
 
+      throw error
+    }
+  }
+
+  // Helper method to store message in RAG system
+  private static async storeMessageInRAG(
+    messageId: string,
+    conversationId: string,
+    senderId: string,
+    senderName: string,
+    text: string,
+    type: MessageType
+  ): Promise<void> {
+    try {
+      // Get conversation to find recipient
+      const conversation = await this.getConversation(conversationId)
+      if (!conversation) {
+        console.warn('Conversation not found for RAG storage')
+        return
+      }
+
+      // Find recipient (the other participant in the conversation)
+      const recipientId = conversation.participants.find(id => id !== senderId)
+      if (!recipientId) {
+        console.warn('Recipient not found for RAG storage')
+        return
+      }
+
+      // Get recipient profile
+      const recipientDoc = await getDoc(doc(db, COLLECTIONS.USERS, recipientId))
+      const recipientName = recipientDoc.exists() ? recipientDoc.data().displayName : 'Unknown'
+
+      // Get recent messages for context
+      const recentMessages = await this.getRecentMessagesForContext(conversationId, 3)
+
+      // Create message object
+      const message: Message = {
+        id: messageId,
+        conversationId,
+        senderId,
+        senderName,
+        text,
+        timestamp: new Date(),
+        type,
+        status: 'sent'
+      }
+
+      // Store in RAG
+      await RAGService.storeMessage(message, recipientId, recipientName, recentMessages)
+    } catch (error) {
+      console.error('Error in storeMessageInRAG:', error)
       throw error
     }
   }
@@ -676,6 +733,21 @@ export class MessagingService {
     } catch (error) {
       console.error('Error marking message as read by user:', error)
       throw error
+    }
+  }
+
+  // Get recent messages for context (used for RAG)
+  static async getRecentMessagesForContext(
+    conversationId: string,
+    limit: number = 3
+  ): Promise<Message[]> {
+    try {
+      const { messages } = await this.getConversationMessages(conversationId, limit)
+      // Return in chronological order (oldest first) for context
+      return messages.reverse()
+    } catch (error) {
+      console.error('Error getting recent messages for context:', error)
+      return []
     }
   }
 }

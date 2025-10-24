@@ -1,0 +1,651 @@
+{
+  "name": "Babel",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6892b11f-2744-49b2-99c6-03d5ed31c822",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        -16
+      ],
+      "id": "0eaa2f01-ac70-49e4-b26e-8c7947ad4de6",
+      "name": "Webhook",
+      "webhookId": "6892b11f-2744-49b2-99c6-03d5ed31c822"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a translation engine with AI feature analysis. Detect source language if \\\"source_lang\\\" is \\\"auto\\\".\\nReturn ONLY a single valid \n          +  JSON object that matches this schema:\\n{\\n  \\\"source_lang_detected\\\": \\\"string (ISO language name or code)\\\",\\n  \\\"target_lang\\\": \\\"string (requested)\\\",\\n  \n          +  \\\"original_text\\\": \\\"string\\\",\\n  \\\"translated_text\\\": \\\"string\\\",\\n  \\\"cultural_context\\\": {\\n    \\\"has_nuance\\\": boolean,\\n    \\\"hint\\\": \\\"string (brief \n          +  explanation if has_nuance is true)\\\",\\n    \\\"why_differs\\\": \\\"string (why literal translation wouldn't work)\\\"\\n  },\\n  \\\"formality\\\": {\\n    \\\"detected\\\": \n          +  \\\"casual|neutral|formal\\\",\\n    \\\"alternatives\\\": {\\n      \\\"casual\\\": \\\"string\\\",\\n      \\\"neutral\\\": \\\"string\\\",\\n      \\\"formal\\\": \\\"string\\\"\\n    }\\n  },\\n  \n          +  \\\"idioms\\\": [\\n    {\\n      \\\"phrase\\\": \\\"string (exact phrase from original)\\\",\\n      \\\"type\\\": \\\"idiom|slang\\\",\\n      \\\"meaning\\\": \\\"string (what it means)\\\",\\n \n          +       \\\"example\\\": \\\"string (optional, where it's used)\\\"\\n    }\\n  ],\\n  \\\"terminology_applied\\\": [{\\\"from\\\":\\\"string\\\",\\\"to\\\":\\\"string\\\"}]\\n}\\n- Detect cultural \n          +  nuances that affect translation\\n- Analyze formality level and provide alternatives\\n- Extract idioms and slang expressions\\n- Respect glossary mappings exactly \n          +  where applicable (case-insensitive match)\\n- Preserve numbers, dates, URLs, and @handles\\n- \n          +  IMPORTANT: Write ALL explanations (hint, why_differs, meaning, example) in the user's own language (the detected source_lang). For example, if the source text is in \n          +  Spanish, write all explanations in Spanish.\\n- Never add commentary or markdown; output JSON only",
+              "role": "system"
+            },
+            {
+              "content": "={\n  \"text\": \"{{$json.body.text ?? $json.body.message}}\",\n  \"target_lang\": \"{{$json.body.target_lang ?? $json.body.targetLang ?? 'es'}}\",\n  \"source_lang\": \"{{$json.body.source_lang ?? 'auto'}}\",\n  \"formality\": \"{{$json.body.formality ?? 'neutral'}}\",\n  \"include_explanations\": {{ $json.body.include_explanations ?? false }},\n  \"glossary\": {{ $json.body.glossary ?? [] }}\n}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        192,
+        0
+      ],
+      "id": "99d95ea0-378a-4101-9653-6c0f60e69b15",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ppz2SjXiw8GvgvCu",
+          "name": "Gauntlet OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        0
+      ],
+      "id": "1255cede-598b-40c7-a0c0-d2c7cc24e03e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "45531a0e-05bd-41df-b785-a018b0dfd46f",
+              "leftValue": "={{ $json.body.type }}",
+              "rightValue": "rag_query",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "4c07c0cf-e34c-477c-9d26-b4be9bc8f18a",
+              "leftValue": "={{ $json.body.type }}",
+              "rightValue": "store_message",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        -16
+      ],
+      "id": "c7a060d2-9e8a-4b06-871f-f31677319170",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7a49783e-28e9-4379-98bf-da564d7182b5",
+              "leftValue": "={{ $json.body.type }}",
+              "rightValue": "store_message",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        -368
+      ],
+      "id": "f08cf27a-cca1-4912-ba0b-a4723c1b0d2e",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an AI that extracts life events and important updates from multilingual conversations. Extract structured information and return valid JSON only.\n\n  Extract the following:\n  - event_type: (job_change, health_update, milestone, relocation, relationship_change, achievement, or general_update)\n  - person: (who the event is about)\n  - date: (when it happened or was mentioned, in ISO format if possible)\n  - details: (brief description)\n  - sentiment: (positive, negative, neutral)\n  - language: (language of original message)\n\n  Return ONLY valid JSON, no additional text.",
+              "role": "system"
+            },
+            {
+              "content": "=Extract life events from these messages:\n\n  {{ JSON.stringify($json.body.conversationContext) }}\n\n  Current message: {{ $json.body.currentMessage }}\n  Chat ID: {{ $json.body.chatId }}\n  Sender: {{ $json.body.senderName }}\n  Recipient: {{ $json.body.recipientName }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        352,
+        -720
+      ],
+      "id": "9d335f2b-7b52-4c6a-8676-6782af7b9ebb",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "ppz2SjXiw8GvgvCu",
+          "name": "Gauntlet OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Get the LLM response\n  const llmResponse = $input.item.json;\n\n  // Parse the response - handle the actual format from the LLM\n  let events = [];\n\n  if (llmResponse.message && llmResponse.message.content) {\n    // The content IS the event itself (not wrapped in events array)\n    const eventData = llmResponse.message.content;\n\n    // Wrap the single event in an array\n    events = [eventData];\n  } else if (llmResponse.choices && llmResponse.choices[0]) {\n    // OpenAI format (alternative)\n    const content = llmResponse.choices[0].message.content;\n\n    // Try to parse as JSON\n    if (typeof content === 'string') {\n      const parsed = JSON.parse(content);\n      events = parsed.events ? parsed.events : [parsed];\n    } else if (typeof content === 'object') {\n      events = content.events ? content.events : [content];\n    }\n  } else if (llmResponse.events) {\n    // Direct format with events array\n    events = llmResponse.events;\n  } else {\n    // Fallback: empty array\n    events = [];\n  }\n\n  // Get original request data from webhook body\n  const webhookData = $('If').first().json.body;\n  const chatId = webhookData.chatId || 'unknown';\n  const timestamp = webhookData.timestamp || new Date().toISOString();\n\n  // Prepare output: one item per event for processing\n  const output = events.map(event => ({\n    json: {\n      // Event data\n      event_type: event.event_type,\n      person: event.person,\n      date: event.date || timestamp,\n      details: event.details,\n      sentiment: event.sentiment || 'neutral',\n      language: event.language || 'unknown',\n\n      // Metadata\n      chatId: chatId,\n      extractedAt: new Date().toISOString(),\n      originalTimestamp: timestamp,\n\n      // For embedding later\n      text: `${event.event_type}: ${event.person} - ${event.details}`,\n\n      // Original event object\n      rawEvent: event\n    }\n  }));\n\n  return output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -720
+      ],
+      "id": "75f099f2-8fd8-4568-b88e-459a26df21f0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "babel-events",
+          "mode": "list",
+          "cachedResultName": "babel-events"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        -720
+      ],
+      "id": "323f3989-ac3b-476d-b8f3-1a1da30ccf74",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "8oixgBa6ZGvlks4H",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "event_type",
+                "value": "=={{ $json.event_type }}"
+              },
+              {
+                "name": "person",
+                "value": "=={{ $json.person }}"
+              },
+              {
+                "name": "date",
+                "value": "=={{ $json.date }}"
+              },
+              {
+                "name": "details",
+                "value": "=={{ $json.details }}"
+              },
+              {
+                "name": "sentiment",
+                "value": "=={{ $json.sentiment }}"
+              },
+              {
+                "name": "language",
+                "value": "=={{ $json.language }}"
+              },
+              {
+                "name": "chatId",
+                "value": "=={{ $json.chatId }}"
+              },
+              {
+                "name": "extractedAt",
+                "value": "=={{ $json.extractedAt }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        -560
+      ],
+      "id": "93f84a0d-74bf-4d62-9820-2d70086cc991",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -528
+      ],
+      "id": "4343bec8-b894-4e0a-8d75-d362f2b8bc84",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "ppz2SjXiw8GvgvCu",
+          "name": "Gauntlet OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        -720
+      ],
+      "id": "fc2bf907-90cc-4a00-8ed9-1d4907a01419",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "babel-events",
+          "mode": "list",
+          "cachedResultName": "babel-events"
+        },
+        "prompt": "=={{ $json.body.query }}",
+        "topK": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        -352
+      ],
+      "id": "4a3fb329-6862-49ef-b81f-5f806c8ba609",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "8oixgBa6ZGvlks4H",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        -192
+      ],
+      "id": "b9e3939a-5581-4558-ab90-2bd3d55153d9",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "v4gIUd2ZXsBVk9sm",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Get query results from Pinecone\n  const items = $input.all();\n\n  // Check if we have any results\n  if (!items || items.length === 0) {\n    return [{\n      json: {\n        success: true,\n        query: $('If1').first().json.body.query,\n        results: [],\n        count: 0,\n        message: 'No matching events found'\n      }\n    }];\n  }\n\n  // Format each result\n  const formattedResults = items.map(item => {\n    const data = item.json;\n\n    // Access the document and metadata structure from Pinecone\n    const document = data.document || data;\n    const metadata = document.metadata || data.metadata || data;\n\n    // Helper function to strip '=' prefix if present\n    const cleanValue = (val) => {\n      if (typeof val === 'string' && val.startsWith('=')) {\n        return val.substring(1);\n      }\n      return val;\n    };\n\n    return {\n      event_type: cleanValue(metadata.event_type) || 'unknown',\n      person: cleanValue(metadata.person) || 'unknown',\n      date: cleanValue(metadata.date) || 'unknown',\n      details: cleanValue(metadata.details) || 'No details',\n      sentiment: cleanValue(metadata.sentiment) || 'neutral',\n      language: cleanValue(metadata.language) || 'unknown',\n      chatId: cleanValue(metadata.chatId) || 'unknown',\n      score: data.score || 0\n    };\n  });\n\n  // Sort by relevance (highest score first)\n  formattedResults.sort((a, b) => b.score - a.score);\n\n  // Get original query from the webhook\n  const originalQuery = $('If1').first().json.body.query;\n\n  // Return formatted response\n  return [{\n    json: {\n      success: true,\n      query: originalQuery,\n      results: formattedResults,\n      count: formattedResults.length\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -352
+      ],
+      "id": "39f36b29-8f51-441e-acf5-96ef19ecc469",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        -352
+      ],
+      "id": "8a2edc2f-42e2-4808-bf25-e299fdde7bb7",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Get the LLM response\n  const llmResponse = $input.first().json;\n  const answer = llmResponse.message?.content || llmResponse.content || \"No answer generated\";\n\n  // Get the structured results from the previous Code node\n  const structuredData = $('Code in JavaScript1').first().json;\n\n  // Combine into final response\n  return [{\n    json: {\n      success: true,\n      query: structuredData.query,\n      answer: answer,  // Natural language answer\n      results: structuredData.results,  // Structured events\n      count: structuredData.count\n    }\n  }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -352
+      ],
+      "id": "bd52c72d-134b-49ba-8dd9-4ad9c06ce76c",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a helpful assistant that answers questions about past conversations and life events.\n\n  You will receive:\n  1. A user's question\n  2. Relevant events extracted from their conversation history\n  3. The language to respond in\n\n  Your task:\n  - Answer the question naturally using the provided events\n  - If multiple events are relevant, mention all of them\n  - Include specific details (dates, names, locations)\n  - Be conversational and friendly\n  - If no relevant events found, say you don't have that information\n  - IMPORTANT: Always respond in the specified target language\n\n  Keep responses concise (2-3 sentences max).",
+              "role": "system"
+            },
+            {
+              "content": "= ={{\n    \"Target language: \" + ($('If1').first().json.body.target_lang || 'en') + \"\\n\\n\" +\n    \"Question: \" + $('If1').first().json.body.query + \"\\n\\n\" +\n    \"Relevant events from conversation history:\\n\" +\n    JSON.stringify($json.results, null, 2)\n  }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        880,
+        -352
+      ],
+      "id": "2a669479-0b9b-4219-94c9-f2a3dd870189",
+      "name": "Message a model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "ppz2SjXiw8GvgvCu",
+          "name": "Gauntlet OpenAI"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Message a model2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook2": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a941cb8a-fcc4-496a-acc5-5af9886b83c2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e5840298eec2529473b4e3f50bc5c05a4bb2a6037051ac959cd39bbab9721e60"
+  },
+  "id": "4tTV6Or3CPmaiEV3",
+  "tags": []
+}

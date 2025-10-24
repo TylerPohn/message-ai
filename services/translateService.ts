@@ -22,28 +22,28 @@ export class TranslateService {
     console.log('🔧 [TranslateService] Initializing translation service...')
     console.log(
       '🔧 [TranslateService] Environment variables available:',
-      Object.keys(process.env).filter((key) => key.includes('TRANSLATION'))
+      Object.keys(process.env).filter((key) => key.includes('N8N') || key.includes('WEBHOOK'))
     )
 
     // Try process.env first (for .env files)
-    let endpoint = process.env.EXPO_PUBLIC_TRANSLATION_ENDPOINT
+    let endpoint = process.env.EXPO_PUBLIC_N8N_WEBHOOK_URL
     console.log(
-      '🔧 [TranslateService] process.env.EXPO_PUBLIC_TRANSLATION_ENDPOINT:',
+      '🔧 [TranslateService] process.env.EXPO_PUBLIC_N8N_WEBHOOK_URL:',
       endpoint
     )
 
     // Fallback to Constants.expoConfig.extra (for app.json configuration)
     if (!endpoint) {
-      endpoint = Constants.expoConfig?.extra?.EXPO_PUBLIC_TRANSLATION_ENDPOINT
+      endpoint = Constants.expoConfig?.extra?.EXPO_PUBLIC_N8N_WEBHOOK_URL
       console.log(
-        '🔧 [TranslateService] Constants.expoConfig.extra.EXPO_PUBLIC_TRANSLATION_ENDPOINT:',
+        '🔧 [TranslateService] Constants.expoConfig.extra.EXPO_PUBLIC_N8N_WEBHOOK_URL:',
         endpoint
       )
     }
 
     if (!endpoint) {
       console.error(
-        '❌ [TranslateService] EXPO_PUBLIC_TRANSLATION_ENDPOINT is not set in either process.env or app.json!'
+        '❌ [TranslateService] EXPO_PUBLIC_N8N_WEBHOOK_URL is not set in either process.env or app.json!'
       )
       console.error(
         '❌ [TranslateService] Available process.env vars:',
@@ -54,13 +54,13 @@ export class TranslateService {
         Constants.expoConfig?.extra
       )
       throw new Error(
-        'EXPO_PUBLIC_TRANSLATION_ENDPOINT environment variable is required but not set. ' +
+        'EXPO_PUBLIC_N8N_WEBHOOK_URL environment variable is required but not set. ' +
           'Please set this variable in your .env file or app.json extra configuration.'
       )
     }
 
     console.log(
-      '✅ [TranslateService] Translation endpoint configured:',
+      '✅ [TranslateService] N8N webhook endpoint configured:',
       endpoint
     )
     return endpoint
@@ -112,6 +112,7 @@ export class TranslateService {
 
       // Prepare request body for language detection
       const requestBody = {
+        type: 'translate',
         message: message.trim(),
         action: 'detect'
       }
@@ -249,6 +250,7 @@ export class TranslateService {
 
       // Prepare request body
       const requestBody = {
+        type: 'translate',
         message: message.trim(),
         target_lang: targetLang.trim()
       }
