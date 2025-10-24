@@ -2,6 +2,7 @@ import ImageViewer from '@/components/ImageViewer'
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator'
 import { GroupMembersModal } from '@/components/GroupMembersModal'
 import { TranslationMetadataModal } from '@/components/TranslationMetadataModal'
+import { OutgoingTranslationModal } from '@/components/OutgoingTranslationModal'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/firebaseConfig'
 import { ImageService } from '@/services/imageService'
@@ -12,7 +13,7 @@ import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { TranslateService } from '@/services/translateService'
 import { TypingService, TypingUser } from '@/services/typingService'
-import { Conversation, Message, UserProfile, Translation } from '@/types/messaging'
+import { Conversation, Message, UserProfile, Translation, FormalityAlternatives } from '@/types/messaging'
 import { doc, updateDoc } from 'firebase/firestore'
 import { Ionicons } from '@expo/vector-icons'
 import { FlashList } from '@shopify/flash-list'
@@ -80,6 +81,15 @@ export default function ChatScreen() {
   const [showOriginalText, setShowOriginalText] = useState<
     Map<string, boolean>
   >(new Map())
+  const [translationEnabled, setTranslationEnabled] = useState(false)
+  const [outgoingTranslationModalVisible, setOutgoingTranslationModalVisible] = useState(false)
+  const [outgoingTranslationData, setOutgoingTranslationData] = useState<{
+    originalText: string
+    formalityAlternatives: FormalityAlternatives | null
+    sourceLanguage: string
+    targetLanguage: string
+  } | null>(null)
+  const [translatingOutgoing, setTranslatingOutgoing] = useState(false)
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
   const translatedMessages = useRef<Set<string>>(new Set()) // Track translated messages to prevent re-translation
@@ -229,6 +239,13 @@ export default function ChatScreen() {
 
     return { keyboardDidShowListener, keyboardDidHideListener }
   }
+
+  // Set translation enabled based on conversation's auto-translate setting
+  useEffect(() => {
+    if (conversation) {
+      setTranslationEnabled(conversation.autoTranslateEnabled || false)
+    }
+  }, [conversation])
 
   useEffect(() => {
     if (!user || !id) return
@@ -703,6 +720,114 @@ export default function ChatScreen() {
     if (!messageText.trim() || !user || !userProfile || sending) return
 
     const text = messageText.trim()
+
+    // If translation is enabled, intercept and show translation modal
+    if (translationEnabled) {
+      await handleTranslateBeforeSend(text)
+      return
+    }
+
+    // Normal send flow
+    await sendMessageDirect(text)
+  }
+
+  const handleTranslateBeforeSend = async (text: string) => {
+    if (!userProfile) return
+
+    setTranslatingOutgoing(true)
+
+    try {
+      // Determine target language:
+      // For direct chats: use recipient's preferred language
+      // For group chats or if not available: use user's writeInLanguage
+      let targetLanguage = userProfile.writeInLanguage || 'en'
+
+      console.log('🔍 [Chat] Initial targetLanguage from writeInLanguage:', targetLanguage)
+      console.log('🔍 [Chat] Conversation type:', conversation?.type)
+
+      if (conversation?.type === 'direct') {
+        const otherParticipant = conversation.participants.find(
+          (id) => id !== user?.uid
+        )
+        if (otherParticipant) {
+          const recipientProfile = participantProfiles.get(otherParticipant)
+          console.log('🔍 [Chat] Recipient preferredLanguage:', recipientProfile?.preferredLanguage)
+          console.log('🔍 [Chat] Recipient autoTranslate:', recipientProfile?.autoTranslate)
+          // Only use recipient's language if they have auto-translate enabled
+          if (recipientProfile?.preferredLanguage && recipientProfile?.autoTranslate) {
+            targetLanguage = recipientProfile.preferredLanguage
+            console.log('🔍 [Chat] Using recipient language (they have auto-translate on):', targetLanguage)
+          } else {
+            console.log('🔍 [Chat] Recipient does not have auto-translate, keeping writeInLanguage:', targetLanguage)
+          }
+        }
+      }
+
+      console.log('🔍 [Chat] Final targetLanguage:', targetLanguage)
+
+      // Source language: auto-detect (user writes in whatever they want)
+      const sourceLanguage = userProfile.preferredLanguage || 'auto'
+
+      // Call translation service to get all formality alternatives
+      const result = await TranslateService.translateOutgoingMessage(
+        text,
+        sourceLanguage,
+        targetLanguage
+      )
+
+      // Show modal with translation options
+      setOutgoingTranslationData({
+        originalText: text,
+        formalityAlternatives: result.formalityAlternatives,
+        sourceLanguage: result.detectedSourceLanguage,
+        targetLanguage: targetLanguage
+      })
+      setOutgoingTranslationModalVisible(true)
+    } catch (error) {
+      console.error('Error translating outgoing message:', error)
+      Alert.alert('Translation Error', 'Failed to translate message. Sending original text.')
+      // Fall back to sending original text
+      await sendMessageDirect(text)
+    } finally {
+      setTranslatingOutgoing(false)
+    }
+  }
+
+  const handleSendTranslatedMessage = async (translatedText: string, formality: 'casual' | 'neutral' | 'formal') => {
+    // Close modal
+    setOutgoingTranslationModalVisible(false)
+    setOutgoingTranslationData(null)
+
+    // Send the translated text
+    await sendMessageDirect(translatedText)
+  }
+
+  const handleCancelTranslation = () => {
+    setOutgoingTranslationModalVisible(false)
+    setOutgoingTranslationData(null)
+  }
+
+  const handleTranslationToggle = async () => {
+    const newValue = !translationEnabled
+    setTranslationEnabled(newValue)
+
+    // Update conversation auto-translate setting in Firestore
+    if (conversation?.id) {
+      try {
+        const conversationRef = doc(db, 'conversations', conversation.id)
+        await updateDoc(conversationRef, {
+          autoTranslateEnabled: newValue,
+          updatedAt: new Date()
+        })
+      } catch (error) {
+        console.error('Error updating conversation auto-translate setting:', error)
+      }
+    }
+  }
+
+  const sendMessageDirect = async (text: string) => {
+    if (!user || !userProfile) return
+
     setMessageText('')
     setSending(true)
 
@@ -1257,6 +1382,19 @@ export default function ChatScreen() {
           >
             <Ionicons name='camera-outline' size={20} color='#FFFFFF' />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.translateButton,
+              translationEnabled && styles.translateButtonActive
+            ]}
+            onPress={handleTranslationToggle}
+          >
+            <Ionicons
+              name='language-outline'
+              size={20}
+              color={translationEnabled ? '#00A884' : '#8696A0'}
+            />
+          </TouchableOpacity>
           <TextInput
             ref={textInputRef}
             style={styles.textInput}
@@ -1270,13 +1408,13 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (!messageText.trim() || sending) && styles.sendButtonDisabled
+              (!messageText.trim() || sending || translatingOutgoing) && styles.sendButtonDisabled
             ]}
             onPress={handleSendMessage}
-            disabled={!messageText.trim() || sending}
+            disabled={!messageText.trim() || sending || translatingOutgoing}
           >
             <Text style={styles.sendButtonText}>
-              {sending ? t(locale, 'chat.sendingIndicator') : t(locale, 'chat.sendButton')}
+              {translatingOutgoing ? '...' : sending ? t(locale, 'chat.sendingIndicator') : t(locale, 'chat.sendButton')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1302,6 +1440,20 @@ export default function ChatScreen() {
         onClose={() => setGroupMembersModalVisible(false)}
         members={Array.from(participantProfiles.values())}
         title={conversation?.title || 'Group Members'}
+      />
+
+      {/* Outgoing Translation Modal */}
+      <OutgoingTranslationModal
+        visible={outgoingTranslationModalVisible}
+        originalText={outgoingTranslationData?.originalText || ''}
+        sourceLanguage={outgoingTranslationData?.sourceLanguage || userProfile?.writeInLanguage || 'en'}
+        targetLanguage={outgoingTranslationData?.targetLanguage || userProfile?.preferredLanguage || 'en'}
+        formalityAlternatives={outgoingTranslationData?.formalityAlternatives || null}
+        defaultFormality={userProfile?.defaultFormality || 'neutral'}
+        onSend={handleSendTranslatedMessage}
+        onCancel={handleCancelTranslation}
+        userLocale={locale}
+        loading={translatingOutgoing}
       />
 
       {/* Translation Metadata Modal */}
@@ -1565,6 +1717,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12
+  },
+  translateButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2A3942',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  translateButtonActive: {
+    borderColor: '#00A884',
+    backgroundColor: 'rgba(0, 168, 132, 0.15)'
   },
   imagePreviewContainer: {
     backgroundColor: '#1F2C34',

@@ -17,6 +17,7 @@ export interface Conversation {
   }
   createdAt: Date
   updatedAt: Date
+  autoTranslateEnabled?: boolean // Per-conversation auto-translate setting
 }
 
 export interface ReadReceipt {
@@ -108,8 +109,10 @@ export interface UserProfile {
     status: 'online' | 'offline'
     lastSeen: Date
   }
-  preferredLanguage?: string
-  autoTranslate?: boolean
+  preferredLanguage?: string // UI display language
+  autoTranslate?: boolean // Auto-translate incoming messages
+  writeInLanguage?: string // Language user writes messages in
+  defaultFormality?: 'casual' | 'neutral' | 'formal' // Default formality for outgoing translations
 }
 
 export interface Contact {

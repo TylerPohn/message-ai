@@ -100,7 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastSeen: profileData.lastSeen?.toDate() || new Date(),
           createdAt: profileData.createdAt?.toDate() || new Date(),
           preferredLanguage: profileData.preferredLanguage || 'en',
-          autoTranslate: profileData.autoTranslate || false
+          autoTranslate: profileData.autoTranslate || false,
+          writeInLanguage: profileData.writeInLanguage,
+          defaultFormality: profileData.defaultFormality
         })
       }
     } catch (error) {

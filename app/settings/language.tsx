@@ -54,14 +54,20 @@ export default function LanguageSettingsScreen() {
   )
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en')
   const [autoTranslate, setAutoTranslate] = useState<boolean>(false)
+  const [writeInLanguage, setWriteInLanguage] = useState<string>('en')
+  const [defaultFormality, setDefaultFormality] = useState<'casual' | 'neutral' | 'formal'>('neutral')
   const [loading, setLoading] = useState(false)
   const [showLanguagePicker, setShowLanguagePicker] = useState(false)
+  const [showWriteInLanguagePicker, setShowWriteInLanguagePicker] = useState(false)
+  const [showFormalityPicker, setShowFormalityPicker] = useState(false)
 
   // Load current preferences
   useEffect(() => {
     if (userProfile) {
       setSelectedLanguage(userProfile.preferredLanguage || 'en')
       setAutoTranslate(userProfile.autoTranslate || false)
+      setWriteInLanguage(userProfile.writeInLanguage || userProfile.preferredLanguage || 'en')
+      setDefaultFormality(userProfile.defaultFormality || 'neutral')
     }
   }, [userProfile])
 
@@ -77,16 +83,26 @@ export default function LanguageSettingsScreen() {
 
     setLoading(true)
     try {
+      // Update language preferences
       await UserService.updateLanguagePreferences(
         user.uid,
         selectedLanguage,
         autoTranslate
       )
 
+      // Update writing preferences
+      await UserService.updateWritingPreferences(
+        user.uid,
+        writeInLanguage,
+        defaultFormality
+      )
+
       // Update local profile
       await updateUserProfile({
         preferredLanguage: selectedLanguage,
-        autoTranslate: autoTranslate
+        autoTranslate: autoTranslate,
+        writeInLanguage: writeInLanguage,
+        defaultFormality: defaultFormality
       })
 
       // Persist language preference to AsyncStorage for login/signup screens
@@ -131,6 +147,23 @@ export default function LanguageSettingsScreen() {
     return LANGUAGE_NAMES_NATIVE[selectedLanguage as LanguageCode] || 'English'
   }
 
+  const getWriteInLanguageName = () => {
+    return LANGUAGE_NAMES_NATIVE[writeInLanguage as LanguageCode] || 'English'
+  }
+
+  const getFormalityLabel = (level: 'casual' | 'neutral' | 'formal') => {
+    switch (level) {
+      case 'casual':
+        return t(locale, 'languageSettings.casualOption')
+      case 'neutral':
+        return t(locale, 'languageSettings.neutralOption')
+      case 'formal':
+        return t(locale, 'languageSettings.formalOption')
+    }
+  }
+
+  const formalityOptions: Array<'casual' | 'neutral' | 'formal'> = ['casual', 'neutral', 'formal']
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -145,7 +178,7 @@ export default function LanguageSettingsScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Language Selection */}
+        {/* UI Language Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t(locale, 'languageSettings.preferredLanguageSection')}</Text>
           <TouchableOpacity
@@ -154,6 +187,44 @@ export default function LanguageSettingsScreen() {
           >
             <Text style={styles.languageSelectorText}>
               {getCurrentLanguageName()}
+            </Text>
+            <Ionicons
+              name='chevron-down'
+              size={20}
+              color={WhatsAppColors.lightText}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Write-In Language Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t(locale, 'languageSettings.writingLanguageSection')}</Text>
+          <Text style={styles.sectionDescription}>{t(locale, 'languageSettings.writingLanguageDescription')}</Text>
+          <TouchableOpacity
+            style={styles.languageSelector}
+            onPress={() => setShowWriteInLanguagePicker(true)}
+          >
+            <Text style={styles.languageSelectorText}>
+              {getWriteInLanguageName()}
+            </Text>
+            <Ionicons
+              name='chevron-down'
+              size={20}
+              color={WhatsAppColors.lightText}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Default Formality Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t(locale, 'languageSettings.defaultFormalitySection')}</Text>
+          <Text style={styles.sectionDescription}>{t(locale, 'languageSettings.defaultFormalityDescription')}</Text>
+          <TouchableOpacity
+            style={styles.languageSelector}
+            onPress={() => setShowFormalityPicker(true)}
+          >
+            <Text style={styles.languageSelectorText}>
+              {getFormalityLabel(defaultFormality)}
             </Text>
             <Ionicons
               name='chevron-down'
@@ -193,7 +264,7 @@ export default function LanguageSettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Language Picker Modal */}
+      {/* UI Language Picker Modal */}
       <Modal
         visible={showLanguagePicker}
         animationType='slide'
@@ -220,6 +291,118 @@ export default function LanguageSettingsScreen() {
               data={languageOptions}
               keyExtractor={(item) => item.code}
               renderItem={renderLanguageOption}
+              style={styles.languageList}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Write-In Language Picker Modal */}
+      <Modal
+        visible={showWriteInLanguagePicker}
+        animationType='slide'
+        transparent={true}
+        onRequestClose={() => setShowWriteInLanguagePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t(locale, 'languageSettings.selectWritingLanguageTitle')}</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowWriteInLanguagePicker(false)}
+              >
+                <Ionicons
+                  name='close'
+                  size={24}
+                  color={WhatsAppColors.lightText}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={languageOptions}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    writeInLanguage === item.code && styles.selectedLanguageOption
+                  ]}
+                  onPress={() => {
+                    setWriteInLanguage(item.code)
+                    setShowWriteInLanguagePicker(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      writeInLanguage === item.code && styles.selectedLanguageOptionText
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                  {writeInLanguage === item.code && (
+                    <Ionicons name='checkmark' size={20} color={WhatsAppColors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+              style={styles.languageList}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Formality Picker Modal */}
+      <Modal
+        visible={showFormalityPicker}
+        animationType='slide'
+        transparent={true}
+        onRequestClose={() => setShowFormalityPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t(locale, 'languageSettings.selectDefaultFormalityTitle')}</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowFormalityPicker(false)}
+              >
+                <Ionicons
+                  name='close'
+                  size={24}
+                  color={WhatsAppColors.lightText}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={formalityOptions}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    defaultFormality === item && styles.selectedLanguageOption
+                  ]}
+                  onPress={() => {
+                    setDefaultFormality(item)
+                    setShowFormalityPicker(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      defaultFormality === item && styles.selectedLanguageOptionText
+                    ]}
+                  >
+                    {getFormalityLabel(item)}
+                  </Text>
+                  {defaultFormality === item && (
+                    <Ionicons name='checkmark' size={20} color={WhatsAppColors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
               style={styles.languageList}
             />
           </View>
@@ -273,9 +456,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: WhatsAppColors.text,
-    marginBottom: 12,
+    marginBottom: 4,
     paddingHorizontal: 16,
     paddingTop: 16
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: WhatsAppColors.lightText,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    fontStyle: 'italic'
   },
   languageSelector: {
     flexDirection: 'row',

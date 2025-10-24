@@ -200,4 +200,48 @@ export class UserService {
       throw error
     }
   }
+
+  // Update user writing preferences (write-in language and default formality)
+  static async updateWritingPreferences(
+    userId: string,
+    writeInLanguage?: string,
+    defaultFormality?: 'casual' | 'neutral' | 'formal'
+  ): Promise<void> {
+    try {
+      // Find the user document by uid
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('uid', '==', userId)
+      )
+
+      const usersSnapshot = await getDocs(usersQuery)
+      if (usersSnapshot.empty) {
+        throw new Error('User not found')
+      }
+
+      const userDoc = usersSnapshot.docs[0]
+      const userRef = doc(db, 'users', userDoc.id)
+
+      // Build update object with only provided fields
+      const updateData: any = {
+        updatedAt: new Date()
+      }
+
+      if (writeInLanguage !== undefined) {
+        updateData.writeInLanguage = writeInLanguage.trim()
+      }
+
+      if (defaultFormality !== undefined) {
+        updateData.defaultFormality = defaultFormality
+      }
+
+      // Update the writing preference fields
+      await updateDoc(userRef, updateData)
+
+      console.log('User writing preferences updated successfully:', userId)
+    } catch (error) {
+      console.error('Error updating user writing preferences:', error)
+      throw error
+    }
+  }
 }

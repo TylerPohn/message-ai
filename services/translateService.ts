@@ -13,6 +13,7 @@ import { TranslationStorageService } from './translationStorageService'
 import {
   CulturalContext,
   Formality,
+  FormalityAlternatives,
   IdiomExplanation
 } from '@/types/messaging'
 
@@ -252,6 +253,11 @@ export class TranslateService {
         target_lang: targetLang.trim()
       }
 
+      console.log('📤 [TranslateService] Sending request:', {
+        endpoint: this.TRANSLATION_ENDPOINT,
+        body: requestBody
+      })
+
       // Make the HTTP request
       const response = await fetch(this.TRANSLATION_ENDPOINT, {
         method: 'POST',
@@ -261,17 +267,24 @@ export class TranslateService {
         body: JSON.stringify(requestBody)
       })
 
+      console.log('📥 [TranslateService] Response status:', response.status)
+
       // Check if response is ok
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error')
+        console.error('❌ [TranslateService] Error response:', errorText)
         throw new Error(
           `Translation request failed with status ${response.status}: ${errorText}`
         )
       }
 
+      // Get raw response text first for debugging
+      const responseText = await response.text()
+      console.log('📥 [TranslateService] Raw response:', responseText.substring(0, 500))
+
       // Parse JSON response
       try {
-        const translatedData = await response.json()
+        const translatedData = JSON.parse(responseText)
 
         // Cache the successful result
         this.cache.set(cacheKey, {
@@ -281,6 +294,7 @@ export class TranslateService {
 
         return translatedData
       } catch (jsonError) {
+        console.error('❌ [TranslateService] Failed to parse JSON. Raw response:', responseText)
         throw new Error(
           `Failed to parse translation response as JSON: ${
             jsonError instanceof Error
@@ -500,6 +514,105 @@ export class TranslateService {
       }
     } catch (error) {
       console.error('[TranslateService] Error in translateAndStore:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Translate an outgoing message and get all formality alternatives
+   * Used when user wants to translate before sending
+   *
+   * @param message - The message text to translate
+   * @param sourceLanguage - Source language code (e.g., 'en')
+   * @param targetLanguage - Target language code (e.g., 'es')
+   * @returns Promise with all three formality alternatives
+   */
+  static async translateOutgoingMessage(
+    message: string,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<{
+    formalityAlternatives: FormalityAlternatives
+    detectedSourceLanguage: string
+  }> {
+    try {
+      // Validate input parameters
+      if (!message || typeof message !== 'string') {
+        throw new Error('Message must be a non-empty string')
+      }
+
+      if (!sourceLanguage || typeof sourceLanguage !== 'string') {
+        throw new Error('Source language must be a non-empty string')
+      }
+
+      if (!targetLanguage || typeof targetLanguage !== 'string') {
+        throw new Error('Target language must be a non-empty string')
+      }
+
+      // Create cache key for outgoing translation
+      const cacheKey = `outgoing_${message.trim()}|${sourceLanguage}|${targetLanguage}`
+      const now = Date.now()
+
+      // Check if we have a cached result that's still valid
+      const cached = this.cache.get(cacheKey)
+      if (cached && now - cached.timestamp < this.CACHE_TTL) {
+        console.log('✅ [TranslateService] Using cached outgoing translation')
+        return cached.result
+      }
+
+      // Clean up expired cache entries
+      this.cleanupExpiredCache(now)
+
+      // Call N8N webhook for translation - it should return all formality alternatives
+      console.log('📡 [TranslateService] Requesting outgoing translation with all formality levels')
+      const translationResult = await this.translateMessage(message, targetLanguage)
+
+      // Parse the response to extract formality alternatives
+      let formalityAlternatives: FormalityAlternatives
+      let detectedSourceLang: string
+
+      // Check for nested structure from N8N
+      if (translationResult.message?.content) {
+        const content = translationResult.message.content
+        formalityAlternatives = content.formality?.alternatives || {
+          casual: content.translated_text || message,
+          neutral: content.translated_text || message,
+          formal: content.translated_text || message
+        }
+        detectedSourceLang = content.source_lang_detected || sourceLanguage
+      } else if (translationResult.translatedText?.content) {
+        const content = translationResult.translatedText.content
+        formalityAlternatives = content.formality?.alternatives || {
+          casual: content.translated_text || message,
+          neutral: content.translated_text || message,
+          formal: content.translated_text || message
+        }
+        detectedSourceLang = content.source_lang_detected || sourceLanguage
+      } else {
+        // Flat structure or backwards compatibility
+        formalityAlternatives = translationResult.formality?.alternatives || {
+          casual: translationResult.translated_text || translationResult.translatedText || message,
+          neutral: translationResult.translated_text || translationResult.translatedText || message,
+          formal: translationResult.translated_text || translationResult.translatedText || message
+        }
+        detectedSourceLang = translationResult.source_lang_detected || sourceLanguage
+      }
+
+      const result = {
+        formalityAlternatives,
+        detectedSourceLanguage: detectedSourceLang
+      }
+
+      // Cache the result
+      this.cache.set(cacheKey, {
+        result,
+        timestamp: now
+      })
+
+      console.log('✅ [TranslateService] Outgoing translation successful')
+      return result
+    } catch (error) {
+      console.error('[TranslateService] Error in translateOutgoingMessage:', error)
       throw error
     }
   }
