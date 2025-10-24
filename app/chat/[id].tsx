@@ -3,6 +3,7 @@ import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator'
 import { GroupMembersModal } from '@/components/GroupMembersModal'
 import { TranslationMetadataModal } from '@/components/TranslationMetadataModal'
 import { OutgoingTranslationModal } from '@/components/OutgoingTranslationModal'
+import { RAGQueryModal } from '@/components/RAGQueryModal'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/firebaseConfig'
 import { ImageService } from '@/services/imageService'
@@ -90,6 +91,7 @@ export default function ChatScreen() {
     targetLanguage: string
   } | null>(null)
   const [translatingOutgoing, setTranslatingOutgoing] = useState(false)
+  const [ragModalVisible, setRagModalVisible] = useState(false)
   const flashListRef = useRef<any>(null)
   const translatingMessages = useRef<Set<string>>(new Set())
   const translatedMessages = useRef<Set<string>>(new Set()) // Track translated messages to prevent re-translation
@@ -1277,6 +1279,14 @@ export default function ChatScreen() {
               </Text>
             )}
           </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => setRagModalVisible(true)}
+              style={styles.headerButton}
+            >
+              <Ionicons name='sparkles' size={22} color='#00A884' />
+            </TouchableOpacity>
+          </View>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -1466,6 +1476,15 @@ export default function ChatScreen() {
         }}
         userLocale={locale}
       />
+
+      {/* RAG Query Modal */}
+      <RAGQueryModal
+        visible={ragModalVisible}
+        conversationId={id}
+        targetLang={userProfile?.preferredLanguage || 'en'}
+        onClose={() => setRagModalVisible(false)}
+        userLocale={locale}
+      />
     </View>
   )
 }
@@ -1520,6 +1539,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     fontWeight: '500'
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8
+  },
+  headerButton: {
+    padding: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   headerSpacer: {
     width: 36

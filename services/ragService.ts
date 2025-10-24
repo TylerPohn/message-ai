@@ -92,19 +92,29 @@ export class RAGService {
   static async query(
     query: string,
     chatId?: string,
-    userId?: string
+    targetLang?: string
   ): Promise<any> {
     if (!N8N_WEBHOOK_URL) {
+      console.error('🔍 [RAGService] N8N webhook URL not configured')
       throw new Error('N8N webhook URL not configured')
     }
 
+    console.log('🔍 [RAGService] Sending query to n8n:', {
+      url: N8N_WEBHOOK_URL,
+      query,
+      chatId,
+      targetLang
+    })
+
     try {
-      const payload: RAGQueryPayload = {
+      const payload = {
         type: 'rag_query',
         query,
         chatId,
-        userId
+        target_lang: targetLang
       }
+
+      console.log('🔍 [RAGService] Payload:', JSON.stringify(payload, null, 2))
 
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -114,13 +124,20 @@ export class RAGService {
         body: JSON.stringify(payload)
       })
 
+      console.log('🔍 [RAGService] Response status:', response.status, response.statusText)
+
       if (!response.ok) {
-        throw new Error(`RAG query failed: ${await response.text()}`)
+        const errorText = await response.text()
+        console.error('🔍 [RAGService] Request failed:', errorText)
+        throw new Error(`RAG query failed: ${errorText}`)
       }
 
-      return await response.json()
+      const data = await response.json()
+      console.log('🔍 [RAGService] Response data:', JSON.stringify(data, null, 2))
+
+      return data
     } catch (error) {
-      console.error('Error querying RAG:', error)
+      console.error('🔍 [RAGService] Error querying RAG:', error)
       throw error
     }
   }

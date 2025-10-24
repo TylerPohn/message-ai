@@ -320,6 +320,33 @@ interface TranslationKeys {
     neutralLabel: string; // "Neutral"
     formalLabel: string; // "Formal"
   };
+
+  // RAG Query Feature
+  rag: {
+    buttonTitle: string; // "Ask about this conversation"
+    modalTitle: string; // "Ask a Question"
+    inputPlaceholder: string; // "Ask about events, dates, or people..."
+    searchButton: string; // "Search"
+    searching: string; // "Searching..."
+    closeButton: string; // "Close"
+    answerTitle: string; // "Answer"
+    resultsTitle: string; // "Found Information"
+    noResults: string; // "No relevant information found"
+    noResultsDescription: string; // "Try asking about specific events, dates, or people mentioned in this conversation."
+    errorTitle: string; // "Search Failed"
+    errorMessage: string; // "Could not search conversations. Please try again."
+    relevanceLabel: string; // "Relevance:"
+    dateLabel: string; // "Date:"
+    personLabel: string; // "Person:"
+    detailsLabel: string; // "Details:"
+    eventTypeMilestone: string; // "Milestone"
+    eventTypeJobChange: string; // "Job Change"
+    eventTypeHealthUpdate: string; // "Health Update"
+    eventTypeRelocation: string; // "Relocation"
+    eventTypeRelationshipChange: string; // "Relationship Change"
+    eventTypeAchievement: string; // "Achievement"
+    eventTypeGeneralUpdate: string; // "Update"
+  };
 }
 
 /**
@@ -618,6 +645,31 @@ export const translations = {
       casualLabel: 'Casual',
       neutralLabel: 'Neutral',
       formalLabel: 'Formal',
+    },
+    rag: {
+      buttonTitle: 'Ask about this conversation',
+      modalTitle: 'Ask a Question',
+      inputPlaceholder: 'Ask about events, dates, or people...',
+      searchButton: 'Search',
+      searching: 'Searching...',
+      closeButton: 'Close',
+      answerTitle: 'Answer',
+      resultsTitle: 'Found Information',
+      noResults: 'No relevant information found',
+      noResultsDescription: 'Try asking about specific events, dates, or people mentioned in this conversation.',
+      errorTitle: 'Search Failed',
+      errorMessage: 'Could not search conversations. Please try again.',
+      relevanceLabel: 'Relevance:',
+      dateLabel: 'Date:',
+      personLabel: 'Person:',
+      detailsLabel: 'Details:',
+      eventTypeMilestone: 'Milestone',
+      eventTypeJobChange: 'Job Change',
+      eventTypeHealthUpdate: 'Health Update',
+      eventTypeRelocation: 'Relocation',
+      eventTypeRelationshipChange: 'Relationship Change',
+      eventTypeAchievement: 'Achievement',
+      eventTypeGeneralUpdate: 'Update',
     },
   },
   es: {

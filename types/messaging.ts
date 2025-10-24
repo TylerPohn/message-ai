@@ -164,3 +164,24 @@ export const SUPPORTED_LANGUAGES = {
 } as const
 
 export type LanguageCode = keyof typeof SUPPORTED_LANGUAGES
+
+// RAG (Retrieval-Augmented Generation) Query Types
+export interface RAGEvent {
+  event_type: string // e.g., 'milestone', 'job_change', 'health_update', etc.
+  person: string // Who the event is about
+  date: string // ISO format date
+  details: string // Description of the event
+  sentiment: 'positive' | 'negative' | 'neutral'
+  language: string // Language of the original message
+  chatId: string
+  score: number // Similarity/relevance score (0-1)
+}
+
+export interface RAGQueryResult {
+  success: boolean
+  query: string // The user's question
+  answer: string // LLM-generated natural language answer
+  target_lang?: string // Language the answer is in
+  results: RAGEvent[] // Structured event data
+  count: number // Number of results found
+}
