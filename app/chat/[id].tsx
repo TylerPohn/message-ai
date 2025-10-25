@@ -13,6 +13,7 @@ import { notificationService } from '@/services/notificationService'
 import { OfflineQueueService } from '@/services/offlineQueueService'
 import { PresenceData, PresenceService } from '@/services/presenceService'
 import { TranslateService } from '@/services/translateService'
+import { TranslationStorageService } from '@/services/translationStorageService'
 import { TypingService, TypingUser } from '@/services/typingService'
 import { Conversation, Message, UserProfile, Translation, FormalityAlternatives } from '@/types/messaging'
 import { doc, updateDoc } from 'firebase/firestore'
@@ -108,6 +109,62 @@ export default function ChatScreen() {
       router.replace('/auth/login')
     }
   }, [user, authLoading, router])
+
+  // Bulk-load existing translations from Firestore when chat opens
+  const loadExistingTranslations = useCallback(
+    async (messages: Message[]) => {
+      if (!userProfile?.preferredLanguage || !user?.uid || !userProfile?.autoTranslate) {
+        return
+      }
+
+      console.log('🔄 [ChatScreen] Bulk-loading existing translations for', messages.length, 'messages')
+
+      // Filter messages that need translation (not from current user, text type)
+      const messagesToCheck = messages.filter(
+        (msg) => msg.type === 'text' && msg.senderId !== user.uid
+      )
+
+      // Load translations in parallel
+      const translationPromises = messagesToCheck.map(async (message) => {
+        try {
+          const translation = await TranslationStorageService.getTranslation(
+            message.id,
+            userProfile.preferredLanguage
+          )
+
+          if (translation && typeof translation.translatedText === 'string') {
+            return { messageId: message.id, translation }
+          }
+        } catch (error) {
+          console.error('Error loading translation for message', message.id, error)
+        }
+        return null
+      })
+
+      const results = await Promise.all(translationPromises)
+
+      // Update state with loaded translations
+      const loadedTranslationsMap = new Map<string, any>()
+      results.forEach((result) => {
+        if (result) {
+          loadedTranslationsMap.set(result.messageId, result.translation)
+          translatedMessages.current.add(result.messageId)
+        }
+      })
+
+      if (loadedTranslationsMap.size > 0) {
+        console.log('✅ [ChatScreen] Loaded', loadedTranslationsMap.size, 'existing translations')
+        setTranslations((prev) => {
+          const newMap = new Map(prev)
+          loadedTranslationsMap.forEach((value, key) => {
+            newMap.set(key, value)
+          })
+          return newMap
+        })
+      }
+    },
+    [userProfile?.preferredLanguage, userProfile?.autoTranslate, user?.uid]
+  )
 
   // Handle auto-translation of messages
   const handleAutoTranslation = useCallback(
@@ -310,6 +367,9 @@ export default function ChatScreen() {
         setLastMessageDoc(result.lastDoc)
         setHasMoreMessages(result.messages.length === 50)
         setLoading(false)
+
+        // Bulk-load existing translations for these messages
+        await loadExistingTranslations(loadedMessages)
       } catch (error) {
         console.error('Error loading initial messages:', error)
         setLoading(false)
@@ -398,7 +458,7 @@ export default function ChatScreen() {
       translatedSet.clear()
       transatingMessagesLocal.current.clear()
     }
-  }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation])
+  }, [user, id, userProfile?.autoTranslate, userProfile?.preferredLanguage, handleAutoTranslation, loadExistingTranslations])
 
   // Refresh queued messages when network state changes
   useEffect(() => {
@@ -675,15 +735,20 @@ export default function ChatScreen() {
       )
 
       if (result.messages.length > 0) {
+        const olderMessages = result.messages.reverse()
+
         // Prepend older messages to the beginning of the list
         setMessages((prev) => {
-          const combined = [...result.messages.reverse(), ...prev]
+          const combined = [...olderMessages, ...prev]
           return combined.sort(
             (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
           )
         })
         setLastMessageDoc(result.lastDoc)
         setHasMoreMessages(result.messages.length === 50)
+
+        // Bulk-load existing translations for these older messages
+        await loadExistingTranslations(olderMessages)
       } else {
         setHasMoreMessages(false)
       }
