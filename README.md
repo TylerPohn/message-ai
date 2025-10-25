@@ -30,6 +30,7 @@ Babel is a cross-platform messaging application that breaks down language barrie
 - **Event Extraction**: Automatically identifies and categorizes important events (milestones, updates, plans) from conversations
 - **Sentiment Analysis**: Tracks emotional context of conversations
 - **Multi-Language Context**: Maintains conversation context across language boundaries
+- **N8n Flow**: Full n8n workflow can be exported from n8n.json
 
 ### User Experience
 - **Multi-Language UI**: Interface available in 16 languages with proper RTL support for Arabic and Hebrew
