@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { RAGService } from '@/services/ragService'
-import type { RAGQueryResult } from '@/types/messaging'
+import type { RAGQueryResult, RAGEvent } from '@/types/messaging'
 
 interface UseRAGQueryResult {
   query: string
@@ -12,9 +12,49 @@ interface UseRAGQueryResult {
   reset: () => void
 }
 
+/**
+ * Deduplicates RAG events by grouping similar results and keeping the highest-scoring one
+ */
+function deduplicateEvents(events: RAGEvent[]): RAGEvent[] {
+  if (!events || events.length === 0) return events
+
+  // Filter out low-quality "unknown" events
+  const filtered = events.filter(event => {
+    const hasUnknownPerson = event.person === 'unknown' || !event.person
+    const hasUnknownType = event.event_type === 'unknown' || !event.event_type
+    const hasNoDetails = event.details === 'No details' || !event.details
+
+    // Keep event only if it has meaningful data
+    return !(hasUnknownPerson && hasUnknownType) && !hasNoDetails
+  })
+
+  // Group by unique key: person + event_type + details (normalized)
+  const groups = new Map<string, RAGEvent[]>()
+
+  filtered.forEach(event => {
+    // Create a normalized key for grouping
+    const key = `${event.person?.toLowerCase()}|${event.event_type?.toLowerCase()}|${event.details?.toLowerCase()}`
+
+    if (!groups.has(key)) {
+      groups.set(key, [])
+    }
+    groups.get(key)!.push(event)
+  })
+
+  // Keep the highest-scoring event from each group
+  const deduplicated = Array.from(groups.values()).map(group => {
+    // Sort by score descending and take the first (highest score)
+    return group.sort((a, b) => b.score - a.score)[0]
+  })
+
+  // Sort final results by score descending
+  return deduplicated.sort((a, b) => b.score - a.score)
+}
+
 export function useRAGQuery(
   conversationId: string,
-  targetLang: string
+  targetLang: string,
+  userId?: string
 ): UseRAGQueryResult {
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<RAGQueryResult | null>(null)
@@ -30,7 +70,8 @@ export function useRAGQuery(
     console.log('🔍 [useRAGQuery] Starting search:', {
       query: query.trim(),
       conversationId,
-      targetLang
+      targetLang,
+      userId
     })
 
     setLoading(true)
@@ -41,7 +82,8 @@ export function useRAGQuery(
       const response = await RAGService.query(
         query.trim(),
         conversationId,
-        targetLang
+        targetLang,
+        userId
       )
 
       console.log('🔍 [useRAGQuery] Search completed:', {
@@ -50,6 +92,22 @@ export function useRAGQuery(
         hasAnswer: !!response?.answer,
         answerType: typeof response?.answer
       })
+
+      // Deduplicate results if they exist
+      if (response?.results && response.results.length > 0) {
+        const originalCount = response.results.length
+        const deduplicated = deduplicateEvents(response.results)
+
+        console.log('🔍 [useRAGQuery] Deduplication:', {
+          originalCount,
+          deduplicatedCount: deduplicated.length,
+          removed: originalCount - deduplicated.length
+        })
+
+        // Update response with deduplicated results
+        response.results = deduplicated
+        response.count = deduplicated.length
+      }
 
       setResult(response)
     } catch (err) {

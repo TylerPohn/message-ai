@@ -15,6 +15,7 @@ import { PresenceData, PresenceService } from '@/services/presenceService'
 import { TranslateService } from '@/services/translateService'
 import { TranslationStorageService } from '@/services/translationStorageService'
 import { TypingService, TypingUser } from '@/services/typingService'
+import { RateLimitService } from '@/services/rateLimitService'
 import { Conversation, Message, UserProfile, Translation, FormalityAlternatives } from '@/types/messaging'
 import { doc, updateDoc } from 'firebase/firestore'
 import { Ionicons } from '@expo/vector-icons'
@@ -686,6 +687,17 @@ export default function ChatScreen() {
   const handleSendImage = async () => {
     if (!selectedImage || !user || !userProfile || uploadingImage) return
 
+    // Check rate limit for image uploads
+    try {
+      const rateLimitResult = await RateLimitService.checkRateLimit(user.uid, 'image')
+      if (!rateLimitResult.allowed) {
+        Alert.alert('Rate Limit', rateLimitResult.message || 'Too many image uploads. Please try again later.')
+        return
+      }
+    } catch (error) {
+      console.error('Rate limit check error:', error)
+    }
+
     setUploadingImage(true)
     setUploadProgress(0)
 
@@ -715,7 +727,12 @@ export default function ChatScreen() {
       setUploadProgress(0)
     } catch (error) {
       console.error('Error sending image:', error)
-      Alert.alert('Error', 'Failed to send image. Please try again.')
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        Alert.alert('Rate Limit', error.message)
+      } else {
+        Alert.alert('Error', 'Failed to send image. Please try again.')
+      }
     } finally {
       setUploadingImage(false)
     }
@@ -835,11 +852,12 @@ export default function ChatScreen() {
       // Source language: auto-detect (user writes in whatever they want)
       const sourceLanguage = userProfile.preferredLanguage || 'auto'
 
-      // Call translation service to get all formality alternatives
+      // Call translation service to get all formality alternatives (pass userId for rate limiting)
       const result = await TranslateService.translateOutgoingMessage(
         text,
         sourceLanguage,
-        targetLanguage
+        targetLanguage,
+        user?.uid
       )
 
       // Show modal with translation options
@@ -852,9 +870,14 @@ export default function ChatScreen() {
       setOutgoingTranslationModalVisible(true)
     } catch (error) {
       console.error('Error translating outgoing message:', error)
-      Alert.alert('Translation Error', 'Failed to translate message. Sending original text.')
-      // Fall back to sending original text
-      await sendMessageDirect(text)
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        Alert.alert('Rate Limit', error.message)
+      } else {
+        Alert.alert('Translation Error', 'Failed to translate message. Sending original text.')
+        // Fall back to sending original text
+        await sendMessageDirect(text)
+      }
     } finally {
       setTranslatingOutgoing(false)
     }
@@ -940,7 +963,12 @@ export default function ChatScreen() {
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      // Error occurred while sending message
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        Alert.alert('Rate Limit', error.message)
+      } else {
+        Alert.alert('Error', 'Failed to send message. Please try again.')
+      }
       // Restore message text on error
       setMessageText(text)
     } finally {
@@ -1547,6 +1575,7 @@ export default function ChatScreen() {
         visible={ragModalVisible}
         conversationId={id}
         targetLang={userProfile?.preferredLanguage || 'en'}
+        userId={user?.uid}
         onClose={() => setRagModalVisible(false)}
         userLocale={locale}
       />

@@ -10,6 +10,7 @@
 
 import Constants from 'expo-constants'
 import { TranslationStorageService } from './translationStorageService'
+import { RateLimitService } from './rateLimitService'
 import {
   CulturalContext,
   Formality,
@@ -18,6 +19,48 @@ import {
 } from '@/types/messaging'
 
 export class TranslateService {
+  // Language code to full name mapping
+  private static readonly LANGUAGE_NAMES: Record<string, string> = {
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'nl': 'Dutch',
+    'pl': 'Polish',
+    'tr': 'Turkish',
+    'vi': 'Vietnamese',
+    'th': 'Thai',
+    'sv': 'Swedish',
+    'da': 'Danish',
+    'fi': 'Finnish',
+    'no': 'Norwegian',
+    'cs': 'Czech',
+    'el': 'Greek',
+    'he': 'Hebrew',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'uk': 'Ukrainian',
+    'ro': 'Romanian',
+    'hu': 'Hungarian',
+    'sk': 'Slovak'
+  }
+
+  /**
+   * Convert ISO language code to full language name
+   */
+  private static getLanguageName(code: string): string {
+    const lowerCode = code.toLowerCase().trim()
+    return this.LANGUAGE_NAMES[lowerCode] || code
+  }
+
   private static readonly TRANSLATION_ENDPOINT = (() => {
     console.log('🔧 [TranslateService] Initializing translation service...')
     console.log(
@@ -218,12 +261,14 @@ export class TranslateService {
    *
    * @param message - The message text to translate
    * @param targetLang - The target language code (e.g., 'es', 'fr', 'de')
+   * @param userId - Optional user ID for rate limiting (if not provided, rate limiting is skipped)
    * @returns Promise<any> - The translated message response from the API
    * @throws Error - If network request fails, response is not ok, or JSON parsing fails
    */
   static async translateMessage(
     message: string,
-    targetLang: string
+    targetLang: string,
+    userId?: string
   ): Promise<any> {
     try {
       // Validate input parameters
@@ -233,6 +278,15 @@ export class TranslateService {
 
       if (!targetLang || typeof targetLang !== 'string') {
         throw new Error('Target language must be a non-empty string')
+      }
+
+      // Check rate limit if userId is provided
+      if (userId) {
+        const rateLimitResult = await RateLimitService.checkRateLimit(userId, 'translation')
+        if (!rateLimitResult.allowed) {
+          throw new Error(rateLimitResult.message || 'Translation rate limit exceeded')
+        }
+        console.log(`[TranslateService] Rate limit check passed. ${rateLimitResult.remainingTokens} translations remaining`)
       }
 
       // Create cache key from message and target language
@@ -252,7 +306,8 @@ export class TranslateService {
       const requestBody = {
         type: 'translate',
         message: message.trim(),
-        target_lang: targetLang.trim()
+        target_lang: targetLang.trim(),
+        target_lang_name: this.getLanguageName(targetLang)
       }
 
       console.log('📤 [TranslateService] Sending request:', {
@@ -424,8 +479,8 @@ export class TranslateService {
         }
       }
 
-      // Call N8N webhook for translation with AI features
-      const translationResult = await this.translateMessage(text, targetLanguage)
+      // Call N8N webhook for translation with AI features (pass userId for rate limiting)
+      const translationResult = await this.translateMessage(text, targetLanguage, userId)
 
       // 🔍 LOG: What did N8N return?
       console.log('📡 [TranslateService] N8N Response:', {
@@ -552,12 +607,14 @@ export class TranslateService {
    * @param message - The message text to translate
    * @param sourceLanguage - Source language code (e.g., 'en')
    * @param targetLanguage - Target language code (e.g., 'es')
+   * @param userId - Optional user ID for rate limiting (if not provided, rate limiting is skipped)
    * @returns Promise with all three formality alternatives
    */
   static async translateOutgoingMessage(
     message: string,
     sourceLanguage: string,
-    targetLanguage: string
+    targetLanguage: string,
+    userId?: string
   ): Promise<{
     formalityAlternatives: FormalityAlternatives
     detectedSourceLanguage: string
@@ -576,6 +633,15 @@ export class TranslateService {
         throw new Error('Target language must be a non-empty string')
       }
 
+      // Check rate limit if userId is provided
+      if (userId) {
+        const rateLimitResult = await RateLimitService.checkRateLimit(userId, 'translation')
+        if (!rateLimitResult.allowed) {
+          throw new Error(rateLimitResult.message || 'Translation rate limit exceeded')
+        }
+        console.log(`[TranslateService] Outgoing translation rate limit check passed. ${rateLimitResult.remainingTokens} remaining`)
+      }
+
       // Create cache key for outgoing translation
       const cacheKey = `outgoing_${message.trim()}|${sourceLanguage}|${targetLanguage}`
       const now = Date.now()
@@ -591,8 +657,9 @@ export class TranslateService {
       this.cleanupExpiredCache(now)
 
       // Call N8N webhook for translation - it should return all formality alternatives
+      // Note: We already checked rate limit above, so pass undefined to avoid double-checking
       console.log('📡 [TranslateService] Requesting outgoing translation with all formality levels')
-      const translationResult = await this.translateMessage(message, targetLanguage)
+      const translationResult = await this.translateMessage(message, targetLanguage, undefined)
 
       // Parse the response to extract formality alternatives
       let formalityAlternatives: FormalityAlternatives

@@ -1,4 +1,5 @@
 import { Message } from '@/types/messaging'
+import { RateLimitService } from './rateLimitService'
 
 // Configuration
 const N8N_WEBHOOK_URL = process.env.EXPO_PUBLIC_N8N_WEBHOOK_URL || ''
@@ -92,8 +93,18 @@ export class RAGService {
   static async query(
     query: string,
     chatId?: string,
-    targetLang?: string
+    targetLang?: string,
+    userId?: string
   ): Promise<any> {
+    // Check rate limit if userId is provided
+    if (userId) {
+      const rateLimitResult = await RateLimitService.checkRateLimit(userId, 'rag')
+      if (!rateLimitResult.allowed) {
+        throw new Error(rateLimitResult.message || 'RAG query rate limit exceeded')
+      }
+      console.log(`[RAGService] Rate limit check passed. ${rateLimitResult.remainingTokens} queries remaining`)
+    }
+
     if (!N8N_WEBHOOK_URL) {
       console.error('🔍 [RAGService] N8N webhook URL not configured')
       throw new Error('N8N webhook URL not configured')

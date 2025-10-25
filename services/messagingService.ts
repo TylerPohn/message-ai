@@ -28,6 +28,7 @@ import {
 import { NetworkService } from './networkService'
 import { OfflineQueueService } from './offlineQueueService'
 import { RAGService } from './ragService'
+import { RateLimitService } from './rateLimitService'
 // Removed ulid import - using custom ID generation
 
 export class MessagingService {
@@ -94,6 +95,13 @@ export class MessagingService {
     imageMetadata?: { width: number; height: number; size: number },
     replyTo?: string
   ): Promise<string> {
+    // Check rate limit before sending message
+    const rateLimitResult = await RateLimitService.checkRateLimit(senderId, 'message')
+    if (!rateLimitResult.allowed) {
+      throw new Error(rateLimitResult.message || 'Message rate limit exceeded')
+    }
+    console.log(`[MessagingService] Rate limit check passed. ${rateLimitResult.remainingTokens} messages remaining`)
+
     // Check if we're online
     if (!NetworkService.isOnline()) {
       console.log('Offline - adding message to queue')

@@ -21,6 +21,7 @@ interface Props {
   visible: boolean
   conversationId: string
   targetLang: string
+  userId?: string
   onClose: () => void
   userLocale?: Locale
 }
@@ -29,12 +30,14 @@ export function RAGQueryModal({
   visible,
   conversationId,
   targetLang,
+  userId,
   onClose,
   userLocale = 'en'
 }: Props) {
   const { query, setQuery, result, loading, error, search, reset } = useRAGQuery(
     conversationId,
-    targetLang
+    targetLang,
+    userId
   )
 
   // Debug logging
