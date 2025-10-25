@@ -319,6 +319,9 @@ interface TranslationKeys {
     casualLabel: string; // "Casual"
     neutralLabel: string; // "Neutral"
     formalLabel: string; // "Formal"
+    culturalContextTitle: string; // "Cultural Context"
+    whyDifferentLabel: string; // "Why It's Different:"
+    explanationLabel: string; // "Explanation:"
   };
 
   // RAG Query Feature
@@ -645,6 +648,9 @@ export const translations = {
       casualLabel: 'Casual',
       neutralLabel: 'Neutral',
       formalLabel: 'Formal',
+      culturalContextTitle: 'Cultural Context',
+      whyDifferentLabel: 'Why It\'s Different:',
+      explanationLabel: 'Explanation:',
     },
     rag: {
       buttonTitle: 'Ask about this conversation',
@@ -963,6 +969,9 @@ export const translations = {
       casualLabel: 'Informal',
       neutralLabel: 'Neutro',
       formalLabel: 'Formal',
+      culturalContextTitle: 'Contexto Cultural',
+      whyDifferentLabel: 'Por qué es Diferente:',
+      explanationLabel: 'Explicación:',
     },
   },
   fr: {
@@ -1256,6 +1265,9 @@ export const translations = {
       casualLabel: 'Décontracté',
       neutralLabel: 'Neutre',
       formalLabel: 'Formel',
+      culturalContextTitle: 'Contexte Culturel',
+      whyDifferentLabel: 'Pourquoi c\'est Différent:',
+      explanationLabel: 'Explication:',
     },
   },
   de: {
@@ -1549,6 +1561,9 @@ export const translations = {
       casualLabel: 'Locker',
       neutralLabel: 'Neutral',
       formalLabel: 'Formell',
+      culturalContextTitle: 'Kultureller Kontext',
+      whyDifferentLabel: 'Warum ist es anders:',
+      explanationLabel: 'Erklärung:',
     },
   },
   it: {
@@ -1842,6 +1857,9 @@ export const translations = {
       casualLabel: 'Informale',
       neutralLabel: 'Neutro',
       formalLabel: 'Formale',
+      culturalContextTitle: 'Contesto Culturale',
+      whyDifferentLabel: 'Perché è Diverso:',
+      explanationLabel: 'Spiegazione:',
     },
   },
   pt: {
@@ -2135,6 +2153,9 @@ export const translations = {
       casualLabel: 'Informal',
       neutralLabel: 'Neutro',
       formalLabel: 'Formal',
+      culturalContextTitle: 'Contexto Cultural',
+      whyDifferentLabel: 'Por que é Diferente:',
+      explanationLabel: 'Explicação:',
     },
   },
   ru: {
@@ -2428,6 +2449,9 @@ export const translations = {
       casualLabel: 'Неформальный',
       neutralLabel: 'Нейтральный',
       formalLabel: 'Формальный',
+      culturalContextTitle: 'Культурный Контекст',
+      whyDifferentLabel: 'Почему это Отличается:',
+      explanationLabel: 'Объяснение:',
     },
   },
   uk: {
@@ -2721,6 +2745,9 @@ export const translations = {
       casualLabel: 'Неформальний',
       neutralLabel: 'Нейтральний',
       formalLabel: 'Формальний',
+      culturalContextTitle: 'Культурний Контекст',
+      whyDifferentLabel: 'Чому це Відрізняється:',
+      explanationLabel: 'Пояснення:',
     },
   },
   ja: {
@@ -3014,6 +3041,9 @@ export const translations = {
       casualLabel: 'カジュアル',
       neutralLabel: '普通',
       formalLabel: '丁寧',
+      culturalContextTitle: '文化的背景',
+      whyDifferentLabel: 'なぜ異なるのか：',
+      explanationLabel: '説明：',
     },
   },
   ko: {
@@ -3307,6 +3337,9 @@ export const translations = {
       casualLabel: '캐주얼',
       neutralLabel: '보통',
       formalLabel: '격식',
+      culturalContextTitle: '문화적 맥락',
+      whyDifferentLabel: '왜 다른가요:',
+      explanationLabel: '설명:',
     },
   },
   zh: {
@@ -3600,6 +3633,9 @@ export const translations = {
       casualLabel: '随意',
       neutralLabel: '中性',
       formalLabel: '正式',
+      culturalContextTitle: '文化背景',
+      whyDifferentLabel: '为什么不同：',
+      explanationLabel: '解释：',
     },
   },
   ar: {
@@ -3893,6 +3929,9 @@ export const translations = {
       casualLabel: 'غير رسمي',
       neutralLabel: 'محايد',
       formalLabel: 'رسمي',
+      culturalContextTitle: 'السياق الثقافي',
+      whyDifferentLabel: 'لماذا مختلف:',
+      explanationLabel: 'الشرح:',
     },
   },
   hi: {
@@ -4186,6 +4225,9 @@ export const translations = {
       casualLabel: 'अनौपचारिक',
       neutralLabel: 'तटस्थ',
       formalLabel: 'औपचारिक',
+      culturalContextTitle: 'सांस्कृतिक संदर्भ',
+      whyDifferentLabel: 'यह क्यों अलग है:',
+      explanationLabel: 'व्याख्या:',
     },
   },
   th: {
@@ -4479,6 +4521,9 @@ export const translations = {
       casualLabel: 'ไม่เป็นทางการ',
       neutralLabel: 'กลางๆ',
       formalLabel: 'เป็นทางการ',
+      culturalContextTitle: 'บริบททางวัฒนธรรม',
+      whyDifferentLabel: 'ทำไมมันถึงแตกต่าง:',
+      explanationLabel: 'คำอธิบาย:',
     },
   },
   vi: {
@@ -4772,6 +4817,9 @@ export const translations = {
       casualLabel: 'Thân mật',
       neutralLabel: 'Trung lập',
       formalLabel: 'Trang trọng',
+      culturalContextTitle: 'Bối cảnh Văn hóa',
+      whyDifferentLabel: 'Tại sao Khác nhau:',
+      explanationLabel: 'Giải thích:',
     },
   },
   nl: {
@@ -5065,6 +5113,9 @@ export const translations = {
       casualLabel: 'Informeel',
       neutralLabel: 'Neutraal',
       formalLabel: 'Formeel',
+      culturalContextTitle: 'Culturele Context',
+      whyDifferentLabel: 'Waarom is het Anders:',
+      explanationLabel: 'Uitleg:',
     },
   },
 } as Record<Locale, Partial<TranslationKeys>>;

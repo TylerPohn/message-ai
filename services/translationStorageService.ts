@@ -21,6 +21,21 @@ import {
 
 export class TranslationStorageService {
   /**
+   * Transform API's snake_case cultural context to camelCase interface
+   * API/Firestore may return: has_nuance, why_differs
+   * Interface expects: hasNuance, whyDiffers
+   */
+  private static transformCulturalContext(apiContext: any): CulturalContext | undefined {
+    if (!apiContext) return undefined
+
+    return {
+      hasNuance: apiContext.has_nuance ?? apiContext.hasNuance ?? false,
+      hint: apiContext.hint || '',
+      whyDiffers: apiContext.why_differs ?? apiContext.whyDiffers
+    }
+  }
+
+  /**
    * Get a translation for a specific message and target language
    * Returns null if translation doesn't exist
    */
@@ -79,7 +94,7 @@ export class TranslationStorageService {
             targetLanguage,
             translatedText: extractedString,
             detectedSourceLanguage: data.detectedSourceLanguage || data.translatedText?.content?.source_lang_detected || 'unknown',
-            culturalContext: data.culturalContext || data.translatedText?.content?.cultural_context,
+            culturalContext: this.transformCulturalContext(data.culturalContext || data.translatedText?.content?.cultural_context),
             formality: data.formality || data.translatedText?.content?.formality,
             idioms: data.idioms || data.translatedText?.content?.idioms,
             translatedAt: data.translatedAt?.toDate() || new Date(),
@@ -99,7 +114,7 @@ export class TranslationStorageService {
         targetLanguage,
         translatedText: data.translatedText,
         detectedSourceLanguage: data.detectedSourceLanguage,
-        culturalContext: data.culturalContext,
+        culturalContext: this.transformCulturalContext(data.culturalContext),
         formality: data.formality,
         idioms: data.idioms,
         translatedAt: data.translatedAt?.toDate() || new Date(),
@@ -238,7 +253,7 @@ export class TranslationStorageService {
         targetLanguage: doc.id,
         translatedText: doc.data().translatedText,
         detectedSourceLanguage: doc.data().detectedSourceLanguage,
-        culturalContext: doc.data().culturalContext,
+        culturalContext: this.transformCulturalContext(doc.data().culturalContext),
         formality: doc.data().formality,
         idioms: doc.data().idioms,
         translatedAt: doc.data().translatedAt?.toDate() || new Date(),

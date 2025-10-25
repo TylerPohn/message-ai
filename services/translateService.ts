@@ -335,6 +335,21 @@ export class TranslateService {
   }
 
   /**
+   * Transform API's snake_case cultural context to camelCase interface
+   * API returns: has_nuance, why_differs
+   * Interface expects: hasNuance, whyDiffers
+   */
+  private static transformCulturalContext(apiContext: any): CulturalContext | undefined {
+    if (!apiContext) return undefined
+
+    return {
+      hasNuance: apiContext.has_nuance ?? apiContext.hasNuance ?? false,
+      hint: apiContext.hint || '',
+      whyDiffers: apiContext.why_differs ?? apiContext.whyDiffers
+    }
+  }
+
+  /**
    * Translate a message and store result in Firestore
    * Enhanced version that stores in translations subcollection
    *
@@ -436,7 +451,7 @@ export class TranslateService {
         // Extract from content object (where the actual translation data is)
         translatedTextString = content.translated_text
         detectedSourceLang = content.source_lang_detected || sourceLanguage
-        culturalContext = content.cultural_context || undefined
+        culturalContext = this.transformCulturalContext(content.cultural_context)
         formality = content.formality || undefined
         idioms = content.idioms || undefined
 
@@ -449,7 +464,7 @@ export class TranslateService {
         // Extract from content object (where the actual translation data is)
         translatedTextString = content.translated_text
         detectedSourceLang = content.source_lang_detected || sourceLanguage
-        culturalContext = content.cultural_context || undefined
+        culturalContext = this.transformCulturalContext(content.cultural_context)
         formality = content.formality || undefined
         idioms = content.idioms || undefined
 
@@ -458,7 +473,7 @@ export class TranslateService {
         // Direct string value (simplest case)
         translatedTextString = translationResult.translatedText
         detectedSourceLang = translationResult.source_lang_detected || translationResult.sourceLangDetected || sourceLanguage
-        culturalContext = translationResult.cultural_context || undefined
+        culturalContext = this.transformCulturalContext(translationResult.cultural_context)
         formality = translationResult.formality || undefined
         idioms = translationResult.idioms || undefined
 
@@ -475,12 +490,22 @@ export class TranslateService {
           translationResult.sourceLangDetected ||
           sourceLanguage
 
-        culturalContext = translationResult.cultural_context || undefined
+        culturalContext = this.transformCulturalContext(translationResult.cultural_context)
         formality = translationResult.formality || undefined
         idioms = translationResult.idioms || undefined
 
         console.log('✅ [TranslateService] Parsed flat response structure')
       }
+
+      // Debug log for cultural context
+      console.log('[TranslateService] Extracted metadata:', {
+        hasCulturalContext: !!culturalContext,
+        culturalContextDetails: culturalContext,
+        hasFormality: !!formality,
+        formalityDetails: formality,
+        hasIdioms: !!idioms,
+        idiomsCount: idioms?.length || 0
+      })
 
       // CRITICAL: Verify we extracted a string, not an object
       if (typeof translatedTextString !== 'string') {

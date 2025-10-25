@@ -37,6 +37,15 @@ export function TranslationMetadataModal({ visible, translation, onClose, userLo
     return null
   }
 
+  // Debug logs
+  console.log('[TranslationMetadataModal] Translation data:', {
+    hasIdioms: translation.idioms?.length,
+    hasCulturalContext: !!translation.culturalContext,
+    culturalContextData: translation.culturalContext,
+    hasFormality: !!translation.formality,
+    formalityData: translation.formality
+  })
+
   const sourceLanguageCode =
     translation.detectedSourceLanguage as keyof typeof SUPPORTED_LANGUAGES
   const sourceLanguageName =
@@ -100,10 +109,19 @@ export function TranslationMetadataModal({ visible, translation, onClose, userLo
   }
 
   const renderCulturalContextSection = () => {
+    console.log('[renderCulturalContextSection] Called with:', {
+      culturalContext: translation.culturalContext,
+      hasNuance: translation.culturalContext?.hasNuance,
+      hint: translation.culturalContext?.hint,
+      whyDiffers: translation.culturalContext?.whyDiffers
+    })
+
     if (!translation.culturalContext?.hasNuance) {
+      console.log('[renderCulturalContextSection] Returning null - no cultural context or hasNuance is false')
       return null
     }
 
+    console.log('[renderCulturalContextSection] Rendering cultural context section')
     return (
       <View style={styles.section}>
         <TouchableOpacity
@@ -111,7 +129,7 @@ export function TranslationMetadataModal({ visible, translation, onClose, userLo
           onPress={() => toggleSection('culturalContext')}
           activeOpacity={0.7}
         >
-          <Text style={styles.sectionTitle}>💡 Cultural Context</Text>
+          <Text style={styles.sectionTitle}>💡 {t(userLocale, 'translationDetails.culturalContextTitle')}</Text>
           <Ionicons
             name={expandedSections.culturalContext ? 'chevron-up' : 'chevron-down'}
             size={20}
@@ -122,7 +140,7 @@ export function TranslationMetadataModal({ visible, translation, onClose, userLo
         {expandedSections.culturalContext && (
           <View style={styles.sectionContent}>
             <View style={styles.contextItem}>
-              <Text style={styles.contextLabel}>Why It's Different:</Text>
+              <Text style={styles.contextLabel}>{t(userLocale, 'translationDetails.whyDifferentLabel')}</Text>
               <Text style={styles.contextText}>
                 {translation.culturalContext.hint}
               </Text>
@@ -130,7 +148,7 @@ export function TranslationMetadataModal({ visible, translation, onClose, userLo
 
             {translation.culturalContext.whyDiffers && (
               <View style={styles.contextItem}>
-                <Text style={styles.contextLabel}>Explanation:</Text>
+                <Text style={styles.contextLabel}>{t(userLocale, 'translationDetails.explanationLabel')}</Text>
                 <Text style={styles.contextText}>
                   {translation.culturalContext.whyDiffers}
                 </Text>
